@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">BatteryOps proof card</title>
+  <desc id="desc">A compact proof card showing local-first scope, simple baselines, and public-facing project signals for BatteryOps.</desc>
+  <defs>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f2742"/>
+      <stop offset="100%" stop-color="#1d5fa7"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#13212f" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="680" fill="#f3f6f8"/>
+  <g filter="url(#shadow)">
+    <rect x="70" y="60" rx="34" ry="34" width="1060" height="560" fill="url(#card)"/>
+  </g>
+  <text x="120" y="155" fill="#ffffff" font-family="IBM Plex Sans, Segoe UI, Arial, sans-serif" font-size="54" font-weight="700">BatteryOps proof card</text>
+  <text x="120" y="205" fill="#dbe6ef" font-family="IBM Plex Sans, Segoe UI, Arial, sans-serif" font-size="24">A local analytics demo on public NASA battery telemetry.</text>
+
+  <g font-family="IBM Plex Sans, Segoe UI, Arial, sans-serif" font-size="22">
+    <rect x="120" y="265" rx="18" ry="18" width="180" height="54" fill="#1f8a70"/>
+    <text x="156" y="300" fill="#ffffff">Local-first</text>
+    <rect x="318" y="265" rx="18" ry="18" width="194" height="54" fill="#f4b942"/>
+    <text x="344" y="300" fill="#13212f">No paid APIs</text>
+    <rect x="530" y="265" rx="18" ry="18" width="150" height="54" fill="#ffffff"/>
+    <text x="569" y="300" fill="#13212f">Parquet</text>
+  </g>
+
+  <g font-family="IBM Plex Sans, Segoe UI, Arial, sans-serif" font-size="22" fill="#ffffff">
+    <text x="120" y="372">Key repo signals:</text>
+    <text x="150" y="416">- telemetry triage and predictive maintenance</text>
+    <text x="150" y="456">- simple, transparent baselines over fancy modeling</text>
+    <text x="150" y="496">- demo artifacts keep the app fast; NASA data can back it when available</text>
+    <text x="150" y="536">- honest scope: engineering demo, not EV safety software</text>
+  </g>
+
+  <rect x="780" y="250" rx="26" ry="26" width="270" height="270" fill="#13212f" fill-opacity="0.34"/>
+  <text x="815" y="312" fill="#ffffff" font-family="IBM Plex Mono, Consolas, monospace" font-size="20">dataset: NASA</text>
+  <text x="815" y="350" fill="#ffffff" font-family="IBM Plex Mono, Consolas, monospace" font-size="20">mode: processed</text>
+  <text x="815" y="388" fill="#ffffff" font-family="IBM Plex Mono, Consolas, monospace" font-size="20">fallback: demo</text>
+  <text x="815" y="426" fill="#ffffff" font-family="IBM Plex Mono, Consolas, monospace" font-size="20">UI: Streamlit</text>
+  <text x="815" y="464" fill="#ffffff" font-family="IBM Plex Mono, Consolas, monospace" font-size="20">artifacts: parquet</text>
+</svg>

@@ -1,0 +1,71 @@
+name: Bug report
+description: Report a bug in the local-first Streamlit demo or supporting tooling.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for reproducible issues in the public demo, tests, docs, or local checks.
+        If the app is behaving as expected but the repo story is unclear, open a documentation issue instead.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+      placeholder: The dashboard opens, but the Similar Cases tab shows no rows.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Include the smallest set of steps that reproduces the problem.
+      placeholder: |
+        1. Run `batteryops-demo`
+        2. Open the Similar Cases tab
+        3. Observe the empty table
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_vs_actual
+    attributes:
+      label: Expected vs actual
+      description: Describe the expected behavior and what happened instead.
+      placeholder: Expected the table to show saved incident cases from the demo bundle.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Share only the details needed to reproduce locally.
+      placeholder: |
+        OS:
+        Python:
+        Node:
+        Command used:
+        Demo source: checked-in bundle / synthetic fallback / local processed parquet
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Add logs, screenshots, or error messages if relevant.
+      placeholder: Paste the traceback, screenshot path, or console output here.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Confirmation
+      options:
+        - label: I am reporting a local-first demo issue, not requesting production safety guidance.
+          required: true
+        - label: I did not include raw data, secrets, or other private material.
+          required: true

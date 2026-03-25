@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          cache: "pip"
+          cache-dependency-path: pyproject.toml
+          python-version: ${{ matrix.python-version }}
+
+      - name: Upgrade pip and install build tooling
+        run: python -m pip install --upgrade pip build setuptools wheel
+
+      - name: Install project
+        run: python -m pip install -e ".[dev]"
+
+      - name: Verify editable install
+        run: python -m pip check
+
+      - name: Run repository checks
+        run: make check
+
+      - name: Smoke install from source tree
+        if: matrix.python-version == '3.11'
+        run: |
+          python -m venv .pkgtest-source
+          .pkgtest-source/bin/python -m pip install --upgrade pip
+          .pkgtest-source/bin/python -m pip install --no-cache-dir .
+          .pkgtest-source/bin/python -m pip check
+          .pkgtest-source/bin/python - <<'PY'
+          from importlib.metadata import entry_points
+
+          import batteryops
+          import batteryops.streamlit_app
+
+          console_scripts = {ep.name: ep.value for ep in entry_points(group="console_scripts")}
+          assert console_scripts["batteryops"] == "batteryops.cli:main"
+          assert console_scripts["batteryops-demo"] == "batteryops.cli:launch_demo"
+          assert batteryops.__version__ == "0.1.0"
+          assert batteryops.streamlit_app.__file__
+          PY
+
+      - name: Set reproducible build timestamp
+        if: matrix.python-version == '3.11'
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
+
+      - name: Build source and wheel distributions
+        if: matrix.python-version == '3.11'
+        run: python -m build --sdist --wheel
+
+      - name: Smoke install built wheel
+        if: matrix.python-version == '3.11'
+        run: |
+          python -m venv .pkgtest-wheel
+          .pkgtest-wheel/bin/python -m pip install --upgrade pip
+          .pkgtest-wheel/bin/python -m pip install --no-cache-dir --force-reinstall dist/*.whl
+          .pkgtest-wheel/bin/python -m pip check
+          .pkgtest-wheel/bin/python - <<'PY'
+          from importlib.metadata import entry_points
+          from pathlib import Path
+          from unittest.mock import patch
+
+          import batteryops.cli
+
+          console_scripts = {ep.name: ep.value for ep in entry_points(group="console_scripts")}
+          assert console_scripts["batteryops"] == "batteryops.cli:main"
+          assert console_scripts["batteryops-demo"] == "batteryops.cli:launch_demo"
+
+          captured = {}
+
+          def fake_run(cmd, check=False):
+              captured["cmd"] = cmd
+
+              class Result:
+                  returncode = 0
+
+              return Result()
+
+          with patch.object(batteryops.cli.subprocess, "run", side_effect=fake_run):
+              exit_code = batteryops.cli.launch_demo(["--server.headless=true"])
+
+          assert exit_code == 0
+          assert captured["cmd"][0] == batteryops.cli.sys.executable
+          assert captured["cmd"][1:4] == ["-m", "streamlit", "run"]
+          app_path = Path(captured["cmd"][4])
+          assert app_path.name == "streamlit_app.py"
+          assert app_path.exists()
+
+          PY
+
+      - name: Smoke install built source distribution
+        if: matrix.python-version == '3.11'
+        run: |
+          python -m venv .pkgtest-sdist
+          .pkgtest-sdist/bin/python -m pip install --upgrade pip
+          .pkgtest-sdist/bin/python -m pip install --no-cache-dir --force-reinstall dist/*.tar.gz
+          .pkgtest-sdist/bin/python -m pip check
+          .pkgtest-sdist/bin/python - <<'PY'
+          from importlib.metadata import entry_points
+
+          import batteryops
+          import batteryops.streamlit_app
+
+          console_scripts = {ep.name: ep.value for ep in entry_points(group="console_scripts")}
+          assert console_scripts["batteryops"] == "batteryops.cli:main"
+          assert console_scripts["batteryops-demo"] == "batteryops.cli:launch_demo"
+          assert batteryops.__version__ == "0.1.0"
+          assert batteryops.streamlit_app.__file__
+          PY

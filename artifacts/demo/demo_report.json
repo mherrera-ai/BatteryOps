@@ -1,0 +1,94 @@
+{
+  "report_id": "battery50-12-incident",
+  "asset_id": "battery50",
+  "cycle_id": 12,
+  "incident_types": [
+    "high_voltage",
+    "high_temperature",
+    "high_current"
+  ],
+  "summary": "Asset battery50 showed high_voltage, high_temperature, high_current during cycle 12. The observed window lasted 37496 seconds with severity 6.00.",
+  "evidence": [
+    {
+      "text": "Minimum observed voltage reached 4.72 V during the incident window.",
+      "source_field": "min_voltage_v",
+      "value": 4.723,
+      "grounded": true
+    },
+    {
+      "text": "Peak observed temperature reached 108.03 C during the incident window.",
+      "source_field": "max_temperature_c",
+      "value": 108.031,
+      "grounded": true
+    },
+    {
+      "text": "Peak absolute current reached 19.92 A during the incident window.",
+      "source_field": "max_abs_current_a",
+      "value": 19.91549101793205,
+      "grounded": true
+    },
+    {
+      "text": "The incident window persisted for 37496 seconds.",
+      "source_field": "duration_s",
+      "value": 37495.70399999991,
+      "grounded": true
+    },
+    {
+      "text": "The incident window contains 38703 recorded samples.",
+      "source_field": "sample_count",
+      "value": 38703.0,
+      "grounded": true
+    }
+  ],
+  "similar_cases": [
+    {
+      "window_id": "battery53-16-1",
+      "asset_id": "battery53",
+      "cycle_id": 16,
+      "incident_types": [
+        "high_voltage",
+        "high_temperature",
+        "high_current"
+      ],
+      "severity_score": 6.0,
+      "distance": 2.230430369098087,
+      "summary": "Asset battery53 cycle 16 showed high_voltage,high_temperature,high_current with retrieval distance 2.23."
+    },
+    {
+      "window_id": "battery31-53-1",
+      "asset_id": "battery31",
+      "cycle_id": 53,
+      "incident_types": [
+        "high_voltage",
+        "high_temperature",
+        "high_current"
+      ],
+      "severity_score": 6.0,
+      "distance": 3.198181596255922,
+      "summary": "Asset battery31 cycle 53 showed high_voltage,high_temperature,high_current with retrieval distance 3.20."
+    },
+    {
+      "window_id": "battery10-14-1",
+      "asset_id": "battery10",
+      "cycle_id": 14,
+      "incident_types": [
+        "high_voltage",
+        "high_current"
+      ],
+      "severity_score": 5.0,
+      "distance": 3.790058531448193,
+      "summary": "Asset battery10 cycle 14 showed high_voltage,high_current with retrieval distance 3.79."
+    }
+  ],
+  "recommended_tests": [
+    "Repeat a reference charge-discharge cycle to benchmark capacity drift.",
+    "Inspect thermistor placement and repeat the cycle with thermal logging.",
+    "Verify current sensing calibration and repeat a stepped load test.",
+    "Check charger regulation and confirm the constant-voltage transition."
+  ],
+  "confidence_score": 0.69,
+  "confidence_caveats": [
+    "The report is deterministic and the confidence score is heuristic, based on baseline models plus nearest-neighbor retrieval."
+  ],
+  "grounding_coverage": 1.0
+}

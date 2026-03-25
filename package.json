@@ -1,0 +1,14 @@
+{
+  "name": "batteryops-screenshot-tooling",
+  "private": true,
+  "description": "Pinned tooling for refreshing the BatteryOps screenshot gallery.",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "screenshots": "node docs/screenshots/capture.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.58.2"
+  }
+}

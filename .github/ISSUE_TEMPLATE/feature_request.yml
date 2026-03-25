@@ -1,0 +1,54 @@
+name: Feature request
+description: Suggest a repo, demo, doc, or workflow improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for improvements to the public repo, local demo, docs, tests, or screenshot flow.
+        Keep requests aligned with the current scope: local-first Streamlit, public NASA battery data, no hosted services.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What should be better?
+      placeholder: The README does not explain the demo bundle fast path clearly enough.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the smallest useful change.
+      placeholder: Add a short "5-minute review" section and a pointer to the screenshots.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it helps
+      description: Explain the user or recruiter value.
+      placeholder: Makes the repo easier to understand in a quick portfolio review.
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Add constraints, links, or examples that matter.
+      placeholder: Link to the relevant doc, command, or screenshot if helpful.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Scope check
+      options:
+        - label: This request stays within the local-first demo and public-repo scope.
+          required: true
+        - label: This request does not add paid services, cloud infra, auth, React, or FastAPI.
+          required: true

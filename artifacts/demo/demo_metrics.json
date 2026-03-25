@@ -1,0 +1,15 @@
+{
+  "data_source": "processed",
+  "evaluation_mode": "leave-one-asset-out degradation proxy",
+  "asset_count": 26,
+  "cycle_count": 848,
+  "incident_case_count": 537,
+  "alert_lead_time": 0.4615,
+  "alert_precision": 0.6731,
+  "alert_recall": 0.1955,
+  "false_positive_rate": 0.164,
+  "rul_proxy_mae": 5.483,
+  "rul_mae": 5.483,
+  "evidence_source_coverage": 1.0,
+  "report_grounding_coverage": 1.0
+}

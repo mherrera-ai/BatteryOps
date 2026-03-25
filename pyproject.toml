@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=70", "wheel>=0.43"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "batteryops"
+version = "0.1.0"
+description = "Local-first telemetry triage and predictive maintenance demo for public NASA battery data."
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Michael Herrera" }]
+keywords = [
+    "nasa",
+    "battery",
+    "telemetry",
+    "predictive-maintenance",
+    "streamlit",
+    "data-science",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Framework :: Streamlit",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "plotly>=5.24",
+    "pyarrow>=17.0",
+    "joblib>=1.4",
+    "scikit-learn>=1.8",
+    "scipy>=1.13",
+    "streamlit>=1.40",
+]
+
+[project.scripts]
+batteryops = "batteryops.cli:main"
+batteryops-demo = "batteryops.cli:launch_demo"
+
+[project.urls]
+Homepage = "https://github.com/mherrera-ai/Batteryops"
+Repository = "https://github.com/mherrera-ai/Batteryops"
+Issues = "https://github.com/mherrera-ai/Batteryops/issues"
+Documentation = "https://github.com/mherrera-ai/Batteryops#readme"
+
+[project.optional-dependencies]
+dev = [
+    "build>=1.2",
+    "mypy>=1.11",
+    "pandas-stubs>=2.2",
+    "pytest>=8.3",
+    "ruff>=0.6",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+
+[tool.ruff]
+exclude = [".venv", ".pkgtest*", "build", "dist", "node_modules"]
+line-length = 100
+target-version = "py311"
+src = ["src", "app", "tests"]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "batteryops"]
+
+[tool.mypy]
+files = ["src"]
+python_version = "3.11"
+warn_unused_configs = true
+pretty = true

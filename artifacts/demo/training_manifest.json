@@ -1,0 +1,173 @@
+{
+  "schema_version": 2,
+  "artifacts": {
+    "training_manifest": "artifacts/demo/training_manifest.json",
+    "rul_model": {
+      "path": "artifacts/demo/rul_model.joblib",
+      "size_bytes": 389517,
+      "sha256": "a9ef180ff2a231540c31894e24261b89e9bd15400651c6bf195fb04b62daa269"
+    },
+    "anomaly_model": {
+      "path": "artifacts/demo/anomaly_model.joblib",
+      "size_bytes": 2232565,
+      "sha256": "56e24e85db2d4c94d6e11f5042502cb600506e6dd3bb631ca8c872c8f9baaa26"
+    },
+    "incident_retrieval": {
+      "path": "artifacts/demo/incident_retrieval.joblib",
+      "size_bytes": 130669,
+      "sha256": "85f92110d1707eb47fdb649638783de34274d8044babd551c6b4a4bfaaf68131"
+    },
+    "demo_cycle_predictions": {
+      "path": "artifacts/demo/demo_cycle_predictions.parquet",
+      "size_bytes": 41146,
+      "sha256": "f8cef287caa1b1649eca1ecf33ee00e11ee2268b2cbc60c69354948bce6313f8"
+    },
+    "demo_incident_cases": {
+      "path": "artifacts/demo/demo_incident_cases.parquet",
+      "size_bytes": 47932,
+      "sha256": "e22a2f4e00a82df36ac5cbc9f72dcb7b5279832a22a5de7925cbc928b0d5edba"
+    },
+    "demo_metrics": {
+      "path": "artifacts/demo/demo_metrics.json",
+      "size_bytes": 400,
+      "sha256": "01a74f8ca5392e71a7a90699ff3f204820c71378485da7f87225cd313ab37e5c"
+    },
+    "demo_report": {
+      "path": "artifacts/demo/demo_report.json",
+      "size_bytes": 3013,
+      "sha256": "0282a13f16c1e94d7e17c5870299fff11fef09007b07d2a7819ad7c88eb9ad7b"
+    }
+  },
+  "metrics": {
+    "data_source": "processed",
+    "evaluation_mode": "leave-one-asset-out degradation proxy",
+    "asset_count": 26,
+    "cycle_count": 848,
+    "incident_case_count": 537,
+    "alert_lead_time": 0.4615,
+    "alert_precision": 0.6731,
+    "alert_recall": 0.1955,
+    "false_positive_rate": 0.164,
+    "rul_proxy_mae": 5.483,
+    "rul_mae": 5.483,
+    "evidence_source_coverage": 1.0,
+    "report_grounding_coverage": 1.0
+  },
+  "report_id": "battery50-12-incident",
+  "provenance": {
+    "schema_version": 2,
+    "generated_by": "batteryops 0.1.0",
+    "runtime": {
+      "python": "3.13.0",
+      "platform": "macOS-26.2-arm64-arm-64bit-Mach-O",
+      "batteryops": "0.1.0",
+      "numpy": "2.1.3",
+      "pandas": "2.2.3",
+      "scipy": "1.14.1",
+      "scikit-learn": "1.5.2",
+      "joblib": "1.4.2"
+    },
+    "inputs": {
+      "data_source": "processed",
+      "allow_demo_fallback": true,
+      "cycle_features": {
+        "filename": "cycle_features.parquet",
+        "row_count": 848,
+        "column_count": 23,
+        "columns": [
+          "dataset_code",
+          "asset_id",
+          "asset_group",
+          "cycle_kind",
+          "cycle_id",
+          "cycle_start_time",
+          "step_comment",
+          "sample_count",
+          "duration_s",
+          "voltage_min_v",
+          "voltage_max_v",
+          "voltage_mean_v",
+          "temperature_max_c",
+          "temperature_mean_c",
+          "current_abs_max_a",
+          "throughput_ah",
+          "net_current_ah",
+          "discharge_capacity_proxy_ah",
+          "charge_sample_count",
+          "discharge_sample_count",
+          "rest_sample_count",
+          "incident_sample_count",
+          "is_reference_cycle"
+        ],
+        "dataframe_sha256": "484539ebe799dbba0b9f191b0337051f870d6b7ea396116eff2e56fda873d31e",
+        "size_bytes": 103458,
+        "sha256": "311dbda4a465bdca1464d1ac3ea8b5febff94ea7f99c5fe883852221297751af"
+      },
+      "incident_windows": {
+        "filename": "incident_windows.parquet",
+        "row_count": 537,
+        "column_count": 16,
+        "columns": [
+          "dataset_code",
+          "asset_id",
+          "cycle_id",
+          "window_id",
+          "cycle_start_time",
+          "window_start_time",
+          "window_end_time",
+          "window_start_sample_s",
+          "window_end_sample_s",
+          "duration_s",
+          "sample_count",
+          "incident_types",
+          "max_temperature_c",
+          "min_voltage_v",
+          "max_abs_current_a",
+          "severity_score"
+        ],
+        "dataframe_sha256": "2e419cf83fe8e3685167244387764c69078a1b42ed4e4078aabbe29bddc27740",
+        "size_bytes": 47932,
+        "sha256": "e22a2f4e00a82df36ac5cbc9f72dcb7b5279832a22a5de7925cbc928b0d5edba"
+      }
+    },
+    "training": {
+      "deterministic": true,
+      "feature_columns": [
+        "sample_count",
+        "duration_s",
+        "voltage_min_v",
+        "voltage_max_v",
+        "voltage_mean_v",
+        "temperature_max_c",
+        "temperature_mean_c",
+        "current_abs_max_a",
+        "throughput_ah",
+        "net_current_ah",
+        "capacity_ah",
+        "internal_resistance_ohm",
+        "incident_window_count",
+        "incident_severity_max",
+        "is_reference_cycle"
+      ],
+      "random_seed": 42,
+      "evaluation_mode": "leave-one-asset-out degradation proxy",
+      "rul_model": {
+        "estimator": "HistGradientBoostingRegressor",
+        "random_state": 42
+      },
+      "anomaly_model": {
+        "estimator": "IsolationForest",
+        "random_state": 42,
+        "n_estimators": 200,
+        "final_fit_contamination": 0.2,
+        "holdout_fit_contamination": 0.15,
+        "final_threshold_quantile": 0.8,
+        "holdout_threshold_quantile": 0.85
+      }
+    },
+    "bundle_fingerprint": {
+      "algorithm": "sha256",
+      "value": "1b843f740d8b03fd6c98a241dd2b40d7015bc15511d8d7520f67ce8803ed80b5"
+    }
+  }
+}

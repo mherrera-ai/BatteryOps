@@ -1,0 +1,78 @@
+name: Release Build Smoke
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke:
+    name: Build and smoke test release artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          cache: "pip"
+          cache-dependency-path: pyproject.toml
+          python-version: "3.11"
+
+      - name: Upgrade pip and install build tooling
+        run: python -m pip install --upgrade pip build setuptools wheel
+
+      - name: Set reproducible build timestamp
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
+
+      - name: Build source and wheel distributions
+        run: python -m build --sdist --wheel
+
+      - name: Upload built distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-distributions
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Smoke install built wheel
+        run: |
+          python -m venv .release-wheel
+          .release-wheel/bin/python -m pip install --upgrade pip
+          .release-wheel/bin/python -m pip install --no-cache-dir --force-reinstall dist/*.whl
+          .release-wheel/bin/python -m pip check
+          .release-wheel/bin/python - <<'PY'
+          from importlib.metadata import entry_points
+
+          import batteryops
+          import batteryops.streamlit_app
+
+          console_scripts = {ep.name: ep.value for ep in entry_points(group="console_scripts")}
+          assert console_scripts["batteryops"] == "batteryops.cli:main"
+          assert console_scripts["batteryops-demo"] == "batteryops.cli:launch_demo"
+          assert batteryops.__version__ == "0.1.0"
+          assert batteryops.streamlit_app.__file__
+          PY
+
+      - name: Smoke install built source distribution
+        run: |
+          python -m venv .release-sdist
+          .release-sdist/bin/python -m pip install --upgrade pip
+          .release-sdist/bin/python -m pip install --no-cache-dir --force-reinstall dist/*.tar.gz
+          .release-sdist/bin/python -m pip check
+          .release-sdist/bin/python - <<'PY'
+          from importlib.metadata import entry_points
+
+          import batteryops
+
+          console_scripts = {ep.name: ep.value for ep in entry_points(group="console_scripts")}
+          assert console_scripts["batteryops"] == "batteryops.cli:main"
+          assert console_scripts["batteryops-demo"] == "batteryops.cli:launch_demo"
+          assert batteryops.__version__ == "0.1.0"
+          PY
