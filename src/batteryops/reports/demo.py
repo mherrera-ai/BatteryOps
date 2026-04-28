@@ -27,6 +27,9 @@ DEMO_ARTIFACT_FILENAMES = {
     "demo_incident_cases": "demo_incident_cases.parquet",
     "demo_metrics": "demo_metrics.json",
     "demo_report": "demo_report.json",
+    "model_card": "model_card.json",
+    "data_quality_report": "data_quality_report.json",
+    "evaluation_report": "evaluation_report.json",
 }
 TIMELINE_REQUIRED_COLUMNS = {
     "asset_id",
@@ -36,6 +39,7 @@ TIMELINE_REQUIRED_COLUMNS = {
     "anomaly_score",
     "status",
     "predicted_rul_cycles",
+    "health_index_pct",
 }
 INCIDENT_REQUIRED_COLUMNS = {
     "asset_id",
@@ -133,6 +137,7 @@ def build_demo_timeline() -> pd.DataFrame:
 
     cycles = np.arange(1, 81)
     capacity = 2.05 - (0.0055 * cycles) + (0.025 * np.sin(cycles / 6))
+    health_index = np.clip(capacity / capacity[:10].max() * 100.0, 0.0, 100.0)
     internal_resistance = 0.045 + (0.00045 * cycles) + (0.001 * np.cos(cycles / 8))
     anomaly_score = (internal_resistance - internal_resistance.min()) * 40 + (
         capacity.max() - capacity
@@ -143,6 +148,7 @@ def build_demo_timeline() -> pd.DataFrame:
         {
             "cycle": cycles,
             "capacity_ah": np.round(capacity, 4),
+            "health_index_pct": np.round(health_index, 2),
             "internal_resistance_ohm": np.round(internal_resistance, 5),
             "anomaly_score": np.round(anomaly_score, 4),
             "status": status,
@@ -203,6 +209,7 @@ def _load_artifact_timeline() -> pd.DataFrame | None:
         {
             "cycle": asset_frame["cycle_id"].astype(int),
             "capacity_ah": asset_frame["capacity_ah"].astype(float),
+            "health_index_pct": asset_frame["health_index_pct"].astype(float),
             "internal_resistance_ohm": asset_frame["internal_resistance_ohm"].astype(float),
             "anomaly_score": asset_frame["anomaly_score"].astype(float),
             "status": asset_frame["status"].astype(str),
@@ -357,6 +364,34 @@ def _inspect_bundle_dir(artifact_dir: Path) -> DemoBundleStatus:
             reason="demo_metrics.json could not be parsed as JSON.",
             missing_files=(DEMO_ARTIFACT_FILENAMES["demo_metrics"],),
         )
+    for key in ("model_card", "data_quality_report", "evaluation_report"):
+        artifact_name = DEMO_ARTIFACT_FILENAMES[key]
+        artifact_payload = _load_json_file(artifact_dir / artifact_name)
+        if artifact_payload is None:
+            return DemoBundleStatus(
+                artifact_dir=resolved_artifact_dir,
+                healthy=False,
+                reason=f"{artifact_name} could not be parsed as JSON.",
+                missing_files=(artifact_name,),
+            )
+        if int(artifact_payload.get("schema_version", 0) or 0) < 1:
+            return DemoBundleStatus(
+                artifact_dir=resolved_artifact_dir,
+                healthy=False,
+                reason=f"{artifact_name} is missing a supported schema_version.",
+                missing_files=(artifact_name,),
+            )
+        cost_profile = artifact_payload.get("cost_profile", {})
+        if isinstance(cost_profile, dict) and any(
+            bool(cost_profile.get(flag))
+            for flag in ("uses_external_apis", "requires_api_keys", "requires_paid_services")
+        ):
+            return DemoBundleStatus(
+                artifact_dir=resolved_artifact_dir,
+                healthy=False,
+                reason=f"{artifact_name} violates the zero-cost runtime contract.",
+                missing_files=(artifact_name,),
+            )
     if not METRICS_REQUIRED_KEYS.issubset(metrics):
         return DemoBundleStatus(
             artifact_dir=resolved_artifact_dir,

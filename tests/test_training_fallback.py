@@ -67,6 +67,9 @@ def test_train_baselines_uses_demo_fallback_when_processed_inputs_are_missing(
         "demo_incident_cases",
         "demo_metrics",
         "demo_report",
+        "model_card",
+        "data_quality_report",
+        "evaluation_report",
         "training_manifest",
     }.issubset(result.artifact_paths)
     assert all(path.exists() for path in result.artifact_paths.values())
@@ -87,11 +90,13 @@ def test_train_baselines_uses_demo_fallback_when_processed_inputs_are_missing(
     assert metrics["data_source"] == "demo_fallback"
     assert manifest["metrics"]["data_source"] == "demo_fallback"
     assert manifest["report_id"].startswith("DEMO-")
-    assert manifest["schema_version"] == 2
+    assert manifest["schema_version"] == 3
     assert manifest["provenance"]["training"]["deterministic"] is True
     assert manifest["provenance"]["inputs"]["data_source"] == "demo_fallback"
     assert manifest["provenance"]["bundle_fingerprint"]["algorithm"] == "sha256"
     assert manifest["provenance"]["runtime"]["batteryops"]
+    assert "health_index_pct" in cycle_predictions.columns
+    assert cycle_predictions["health_index_pct"].between(0.0, 100.0).all()
 
 
 def test_train_baselines_emits_a_complete_demo_bundle_contract(tmp_path: Path) -> None:
@@ -110,7 +115,7 @@ def test_train_baselines_emits_a_complete_demo_bundle_contract(tmp_path: Path) -
 
     manifest = json.loads(result.artifact_paths["training_manifest"].read_text())
     assert set(manifest["artifacts"]) == EXPECTED_ARTIFACT_KEYS
-    assert manifest["schema_version"] == 2
+    assert manifest["schema_version"] == 3
     assert manifest["metrics"] == result.metrics
     assert (
         manifest["report_id"]
@@ -145,9 +150,17 @@ def test_train_baselines_emits_a_complete_demo_bundle_contract(tmp_path: Path) -
         "predicted_alert",
         "actual_rul_cycles",
         "actual_alert",
+        "health_index_pct",
     }.issubset(cycle_predictions.columns)
     assert {"window_id", "severity_score", "incident_types"}.issubset(incident_cases.columns)
     assert cycle_predictions["predicted_alert"].dtype == bool
+    assert json.loads(result.artifact_paths["model_card"].read_text())["cost_profile"][
+        "uses_external_apis"
+    ] is False
+    assert json.loads(result.artifact_paths["data_quality_report"].read_text())["cost_profile"][
+        "runtime_cost_usd"
+    ] == 0
+    assert json.loads(result.artifact_paths["evaluation_report"].read_text())["threshold_curve"]
 
 
 def test_train_baselines_is_deterministic_for_demo_fallback(

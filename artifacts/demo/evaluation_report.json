@@ -1,0 +1,429 @@
+{
+  "schema_version": 1,
+  "evaluation_mode": "leave-one-asset-out degradation proxy",
+  "cost_profile": {
+    "runtime_cost_usd": 0,
+    "uses_external_apis": false,
+    "requires_api_keys": false
+  },
+  "headline_metrics": {
+    "data_source": "processed",
+    "evaluation_mode": "leave-one-asset-out degradation proxy",
+    "asset_count": 26,
+    "cycle_count": 848,
+    "incident_case_count": 537,
+    "alert_lead_time": 0.4615,
+    "alert_precision": 0.6731,
+    "alert_recall": 0.1955,
+    "false_positive_rate": 0.164,
+    "rul_proxy_mae": 5.483,
+    "rul_mae": 5.483,
+    "evidence_source_coverage": 1.0,
+    "report_grounding_coverage": 1.0
+  },
+  "confusion": {
+    "true_positive": 111,
+    "false_positive": 59,
+    "true_negative": 252,
+    "false_negative": 426
+  },
+  "threshold_curve": [
+    {
+      "threshold": 0.0,
+      "precision": 0.6333,
+      "recall": 1.0,
+      "false_positive_rate": 1.0,
+      "flagged_cycles": 848
+    },
+    {
+      "threshold": 0.05,
+      "precision": 0.635,
+      "recall": 0.8715,
+      "false_positive_rate": 0.865,
+      "flagged_cycles": 737
+    },
+    {
+      "threshold": 0.1,
+      "precision": 0.6101,
+      "recall": 0.6089,
+      "false_positive_rate": 0.672,
+      "flagged_cycles": 536
+    },
+    {
+      "threshold": 0.15,
+      "precision": 0.6199,
+      "recall": 0.4283,
+      "false_positive_rate": 0.4534,
+      "flagged_cycles": 371
+    },
+    {
+      "threshold": 0.2,
+      "precision": 0.6434,
+      "recall": 0.2924,
+      "false_positive_rate": 0.2797,
+      "flagged_cycles": 244
+    },
+    {
+      "threshold": 0.25,
+      "precision": 0.6474,
+      "recall": 0.2086,
+      "false_positive_rate": 0.1961,
+      "flagged_cycles": 173
+    },
+    {
+      "threshold": 0.3,
+      "precision": 0.6695,
+      "recall": 0.1471,
+      "false_positive_rate": 0.1254,
+      "flagged_cycles": 118
+    },
+    {
+      "threshold": 0.35,
+      "precision": 0.7073,
+      "recall": 0.108,
+      "false_positive_rate": 0.0772,
+      "flagged_cycles": 82
+    },
+    {
+      "threshold": 0.4,
+      "precision": 0.7541,
+      "recall": 0.0857,
+      "false_positive_rate": 0.0482,
+      "flagged_cycles": 61
+    },
+    {
+      "threshold": 0.45,
+      "precision": 0.7,
+      "recall": 0.0652,
+      "false_positive_rate": 0.0482,
+      "flagged_cycles": 50
+    },
+    {
+      "threshold": 0.5,
+      "precision": 0.625,
+      "recall": 0.0466,
+      "false_positive_rate": 0.0482,
+      "flagged_cycles": 40
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.5455,
+      "recall": 0.0335,
+      "false_positive_rate": 0.0482,
+      "flagged_cycles": 33
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.5357,
+      "recall": 0.0279,
+      "false_positive_rate": 0.0418,
+      "flagged_cycles": 28
+    },
+    {
+      "threshold": 0.65,
+      "precision": 0.4783,
+      "recall": 0.0205,
+      "false_positive_rate": 0.0386,
+      "flagged_cycles": 23
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.2941,
+      "recall": 0.0093,
+      "false_positive_rate": 0.0386,
+      "flagged_cycles": 17
+    },
+    {
+      "threshold": 0.75,
+      "precision": 0.4545,
+      "recall": 0.0093,
+      "false_positive_rate": 0.0193,
+      "flagged_cycles": 11
+    },
+    {
+      "threshold": 0.8,
+      "precision": 0.3333,
+      "recall": 0.0056,
+      "false_positive_rate": 0.0193,
+      "flagged_cycles": 9
+    },
+    {
+      "threshold": 0.85,
+      "precision": 0.2857,
+      "recall": 0.0037,
+      "false_positive_rate": 0.0161,
+      "flagged_cycles": 7
+    },
+    {
+      "threshold": 0.9,
+      "precision": 1.0,
+      "recall": 0.0037,
+      "false_positive_rate": 0.0,
+      "flagged_cycles": 2
+    },
+    {
+      "threshold": 0.95,
+      "precision": 1.0,
+      "recall": 0.0019,
+      "false_positive_rate": 0.0,
+      "flagged_cycles": 1
+    },
+    {
+      "threshold": 1.0,
+      "precision": 1.0,
+      "recall": 0.0019,
+      "false_positive_rate": 0.0,
+      "flagged_cycles": 1
+    }
+  ],
+  "per_asset_error": [
+    {
+      "asset_id": "battery21",
+      "cycle_count": 1,
+      "actual_incidents": 1,
+      "predicted_alerts": 1,
+      "rul_mae": 2.2055
+    },
+    {
+      "asset_id": "battery54",
+      "cycle_count": 46,
+      "actual_incidents": 30,
+      "predicted_alerts": 18,
+      "rul_mae": 1.7886
+    },
+    {
+      "asset_id": "battery51",
+      "cycle_count": 29,
+      "actual_incidents": 24,
+      "predicted_alerts": 8,
+      "rul_mae": 1.3907
+    },
+    {
+      "asset_id": "battery53",
+      "cycle_count": 16,
+      "actual_incidents": 13,
+      "predicted_alerts": 1,
+      "rul_mae": 1.1013
+    },
+    {
+      "asset_id": "battery36",
+      "cycle_count": 74,
+      "actual_incidents": 52,
+      "predicted_alerts": 4,
+      "rul_mae": 1.0624
+    },
+    {
+      "asset_id": "battery03",
+      "cycle_count": 36,
+      "actual_incidents": 10,
+      "predicted_alerts": 7,
+      "rul_mae": 1.0119
+    },
+    {
+      "asset_id": "battery32",
+      "cycle_count": 26,
+      "actual_incidents": 11,
+      "predicted_alerts": 1,
+      "rul_mae": 0.8121
+    },
+    {
+      "asset_id": "battery31",
+      "cycle_count": 53,
+      "actual_incidents": 45,
+      "predicted_alerts": 5,
+      "rul_mae": 0.7972
+    },
+    {
+      "asset_id": "battery41",
+      "cycle_count": 46,
+      "actual_incidents": 37,
+      "predicted_alerts": 18,
+      "rul_mae": 0.6517
+    },
+    {
+      "asset_id": "battery23",
+      "cycle_count": 19,
+      "actual_incidents": 14,
+      "predicted_alerts": 2,
+      "rul_mae": 0.5859
+    },
+    {
+      "asset_id": "battery25",
+      "cycle_count": 36,
+      "actual_incidents": 11,
+      "predicted_alerts": 6,
+      "rul_mae": 0.5622
+    },
+    {
+      "asset_id": "battery33",
+      "cycle_count": 32,
+      "actual_incidents": 6,
+      "predicted_alerts": 1,
+      "rul_mae": 0.5302
+    },
+    {
+      "asset_id": "battery22",
+      "cycle_count": 43,
+      "actual_incidents": 31,
+      "predicted_alerts": 6,
+      "rul_mae": 0.512
+    },
+    {
+      "asset_id": "battery20",
+      "cycle_count": 5,
+      "actual_incidents": 3,
+      "predicted_alerts": 5,
+      "rul_mae": 0.4999
+    },
+    {
+      "asset_id": "battery10",
+      "cycle_count": 14,
+      "actual_incidents": 11,
+      "predicted_alerts": 9,
+      "rul_mae": 0.471
+    },
+    {
+      "asset_id": "battery50",
+      "cycle_count": 12,
+      "actual_incidents": 8,
+      "predicted_alerts": 11,
+      "rul_mae": 0.4435
+    },
+    {
+      "asset_id": "battery12",
+      "cycle_count": 42,
+      "actual_incidents": 13,
+      "predicted_alerts": 3,
+      "rul_mae": 0.4252
+    },
+    {
+      "asset_id": "battery13",
+      "cycle_count": 39,
+      "actual_incidents": 28,
+      "predicted_alerts": 2,
+      "rul_mae": 0.3282
+    },
+    {
+      "asset_id": "battery11",
+      "cycle_count": 74,
+      "actual_incidents": 62,
+      "predicted_alerts": 7,
+      "rul_mae": 0.3251
+    },
+    {
+      "asset_id": "battery52",
+      "cycle_count": 23,
+      "actual_incidents": 19,
+      "predicted_alerts": 8,
+      "rul_mae": 0.3197
+    },
+    {
+      "asset_id": "battery02",
+      "cycle_count": 27,
+      "actual_incidents": 6,
+      "predicted_alerts": 2,
+      "rul_mae": 0.2919
+    },
+    {
+      "asset_id": "battery01",
+      "cycle_count": 74,
+      "actual_incidents": 65,
+      "predicted_alerts": 10,
+      "rul_mae": 0.2836
+    },
+    {
+      "asset_id": "battery30",
+      "cycle_count": 9,
+      "actual_incidents": 7,
+      "predicted_alerts": 8,
+      "rul_mae": 0.2472
+    },
+    {
+      "asset_id": "battery24",
+      "cycle_count": 44,
+      "actual_incidents": 10,
+      "predicted_alerts": 3,
+      "rul_mae": 0.2167
+    },
+    {
+      "asset_id": "battery40",
+      "cycle_count": 11,
+      "actual_incidents": 9,
+      "predicted_alerts": 11,
+      "rul_mae": 0.1269
+    },
+    {
+      "asset_id": "battery00",
+      "cycle_count": 17,
+      "actual_incidents": 11,
+      "predicted_alerts": 13,
+      "rul_mae": 0.1092
+    }
+  ],
+  "feature_importance": [
+    {
+      "feature": "sample_count",
+      "importance": 0.125,
+      "method": "saved model input ranking; full training matrix is not shipped"
+    },
+    {
+      "feature": "duration_s",
+      "importance": 0.1167,
+      "method": "saved model input ranking; full training matrix is not shipped"
+    },
+    {
+      "feature": "voltage_min_v",
+      "importance": 0.1083,
+      "method": "saved model input ranking; full training matrix is not shipped"
+    },
+    {
+      "feature": "voltage_max_v",
+      "importance": 0.1,
+      "method": "saved model input ranking; full training matrix is not shipped"
+    },
+    {
+      "feature": "voltage_mean_v",
+      "importance": 0.0917,
+      "method": "saved model input ranking; full training matrix is not shipped"
+    },
+    {
+      "feature": "temperature_max_c",
+      "importance": 0.0833,
+      "method": "saved model input ranking; full training matrix is not shipped"
+    },
+    {
+      "feature": "temperature_mean_c",
+      "importance": 0.075,
+      "method": "saved model input ranking; full training matrix is not shipped"
+    },
+    {
+      "feature": "current_abs_max_a",
+      "importance": 0.0667,
+      "method": "saved model input ranking; full training matrix is not shipped"
+    },
+    {
+      "feature": "throughput_ah",
+      "importance": 0.0583,
+      "method": "saved model input ranking; full training matrix is not shipped"
+    },
+    {
+      "feature": "net_current_ah",
+      "importance": 0.05,
+      "method": "saved model input ranking; full training matrix is not shipped"
+    },
+    {
+      "feature": "capacity_ah",
+      "importance": 0.0417,
+      "method": "saved model input ranking; full training matrix is not shipped"
+    },
+    {
+      "feature": "internal_resistance_ohm",
+      "importance": 0.0333,
+      "method": "saved model input ranking; full training matrix is not shipped"
+    }
+  ],
+  "notes": [
+    "Evaluation is leave-one-asset-out when at least two assets are available.",
+    "Threshold tradeoff is computed from saved validation scores, not a live service."
+  ]
+}

@@ -47,6 +47,7 @@ dependencies = [
 [project.scripts]
 batteryops = "batteryops.cli:main"
 batteryops-demo = "batteryops.cli:launch_demo"
+batteryops-audit = "batteryops.audit:main"
 
 [project.urls]
 Homepage = "https://github.com/mherrera-ai/BatteryOps"

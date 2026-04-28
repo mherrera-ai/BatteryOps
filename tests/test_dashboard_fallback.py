@@ -72,6 +72,7 @@ def test_inspect_demo_bundle_rejects_stale_manifest_backed_bundle(
                 "anomaly_score": 0.87,
                 "status": "monitor",
                 "predicted_rul_cycles": 9.5,
+                "health_index_pct": 91.0,
             }
         ]
     )
@@ -111,6 +112,20 @@ def test_inspect_demo_bundle_rejects_stale_manifest_backed_bundle(
             }
         )
     )
+    for artifact_name in ("model_card", "data_quality_report", "evaluation_report"):
+        (bundle_dir / DEMO_ARTIFACT_FILENAMES[artifact_name]).write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "cost_profile": {
+                        "runtime_cost_usd": 0,
+                        "uses_external_apis": False,
+                        "requires_api_keys": False,
+                        "requires_paid_services": False,
+                    },
+                }
+            )
+        )
     (bundle_dir / "training_manifest.json").write_text(
         json.dumps(
             {

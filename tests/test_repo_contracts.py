@@ -7,6 +7,8 @@ from importlib import metadata
 from pathlib import Path
 from types import SimpleNamespace
 
+import pandas as pd
+
 import batteryops
 from batteryops.cli import launch_demo
 from batteryops.reports.demo import DEMO_ARTIFACT_FILENAMES, inspect_demo_bundle
@@ -18,6 +20,7 @@ def test_console_script_entrypoint_points_to_launch_demo() -> None:
 
     assert project["scripts"]["batteryops"] == "batteryops.cli:main"
     assert project["scripts"]["batteryops-demo"] == "batteryops.cli:launch_demo"
+    assert project["scripts"]["batteryops-audit"] == "batteryops.audit:main"
 
 
 def test_launch_demo_honors_explicit_streamlit_app_override(monkeypatch, tmp_path: Path) -> None:
@@ -62,17 +65,23 @@ def test_readme_and_screenshot_docs_expose_canonical_local_commands() -> None:
     for expected in (
         'python3 -m pip install -e ".[dev]"',
         "batteryops-demo",
+        "batteryops-audit",
         (
             "`batteryops-demo` is the saved-bundle launch path documented here; "
             "`batteryops` is the shorter alias."
         ),
         "Run `batteryops-demo` from the repository root",
         "make check",
+        "make deploy-check",
         "make screenshots",
+        "## Demo",
+        "## Public Readiness Audit",
+        "## Zero-Cost Contract",
         "Do not read `data/processed/` directly at app startup",
         "## 5-Minute Review",
-        "## What Recruiters See",
         "## Publishing Notes",
+        "docs/model-card.md",
+        "docs/data-card.md",
         "[Contributing](CONTRIBUTING.md)",
         "[Security](SECURITY.md)",
     ):
@@ -87,7 +96,15 @@ def test_readme_and_screenshot_docs_expose_canonical_local_commands() -> None:
     ):
         assert expected in screenshot_guide
 
-    for expected in ("install:", "check:", "demo:", "demo-headless:", "screenshots:"):
+    for expected in (
+        "install:",
+        "audit:",
+        "check:",
+        "deploy-check:",
+        "demo:",
+        "demo-headless:",
+        "screenshots:",
+    ):
         assert expected in makefile
 
 
@@ -134,6 +151,7 @@ def test_readme_bundle_claims_match_checked_in_demo_bundle() -> None:
         f"| False positive rate | `{metrics['false_positive_rate'] * 100:.1f}%` |",
         f"| RUL proxy MAE | `{metrics['rul_proxy_mae']:.3f}` cycles |",
         f"| Evidence source coverage | `{metrics['evidence_source_coverage'] * 100:.0f}%` |",
+        "| Health index range | `0.0-100.0%` |",
     )
 
     for row in expected_rows:
@@ -177,23 +195,26 @@ def test_screenshot_capture_script_targets_the_six_documented_tabs() -> None:
     ).read_text(encoding="utf-8")
 
     assert [shot for shot in _extract_js_array_values(source, "name")] == [
-        "overview.png",
-        "live-telemetry-replay.png",
-        "anomaly-timeline.png",
-        "incident-report.png",
+        "fleet-cockpit.png",
+        "asset-replay.png",
+        "incident-evidence.png",
         "similar-cases.png",
-        "evaluation-dashboard.png",
+        "model-evaluation.png",
+        "data-provenance.png",
     ]
     assert [shot for shot in _extract_js_array_values(source, "tab")] == [
-        "Overview",
-        "Live Telemetry Replay",
-        "Anomaly Timeline",
-        "Incident Report",
+        "Fleet Cockpit",
+        "Asset Replay",
+        "Incident Evidence",
         "Similar Cases",
-        "Evaluation Dashboard",
+        "Model Evaluation",
+        "Data & Provenance",
     ]
-    assert source.count("focusAsset: 'battery36'") == 3
-    assert source.count("focusAsset: 'battery50'") == 3
+    assert source.count("focusAsset: 'battery36'") == 2
+    assert source.count("focusAsset: 'battery50'") == 4
+    assert "BATTERYOPS_SCREENSHOT_MAX_HEIGHT_PX" in source
+    assert "resolveScreenshotClip" in source
+    assert "await page.screenshot({" in source
 
 
 def test_installed_distribution_metadata_matches_project_version_and_layout() -> None:
@@ -229,6 +250,9 @@ def test_checked_in_demo_bundle_manifest_exposes_fingerprint_inventory() -> None
         "demo_incident_cases.parquet",
         "demo_metrics.json",
         "demo_report.json",
+        "model_card.json",
+        "data_quality_report.json",
+        "evaluation_report.json",
     }
 
 
@@ -238,6 +262,7 @@ def test_gitignore_covers_local_only_data_and_generated_smoke_outputs() -> None:
     for expected in (
         ".venv/",
         "AGENTS.md",
+        ".deploy-check/",
         ".pkgtest-wheel/",
         ".pkgtest/",
         ".pkgtest-*/",
@@ -256,6 +281,53 @@ def test_gitignore_covers_local_only_data_and_generated_smoke_outputs() -> None:
     ):
         assert expected in gitignore
     assert "package-lock.json" not in gitignore
+
+
+def test_zero_cost_deployment_contract_is_explicit() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    requirements = (repo_root / "requirements.txt").read_text(encoding="utf-8")
+    streamlit_config = (repo_root / ".streamlit" / "config.toml").read_text(encoding="utf-8")
+    pyproject = (repo_root / "pyproject.toml").read_text(encoding="utf-8")
+    tracked_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            repo_root / "README.md",
+            repo_root / "docs" / "architecture.md",
+            repo_root / "docs" / "model-card.md",
+            repo_root / "docs" / "data-card.md",
+        )
+    ).lower()
+
+    assert requirements.strip() == "-e ."
+    assert 'toolbarMode = "minimal"' in streamlit_config
+    assert "gatherUsageStats = false" in streamlit_config
+    for forbidden in (
+        "openai",
+        "anthropic",
+        "pinecone",
+        "weaviate",
+        "supabase",
+        "firebase",
+        "stripe",
+    ):
+        assert forbidden not in pyproject.lower()
+    assert "no external api" in tracked_text
+    assert "runtime cost: `$0`" in tracked_text
+
+
+def test_checked_in_artifact_reports_expose_zero_cost_flags_and_health_index() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    demo_dir = repo_root / "artifacts" / "demo"
+    cycle_columns = set(pd.read_parquet(demo_dir / "demo_cycle_predictions.parquet").columns)
+    for filename in ("model_card.json", "data_quality_report.json", "evaluation_report.json"):
+        payload = json.loads((demo_dir / filename).read_text(encoding="utf-8"))
+        assert int(payload["schema_version"]) >= 1
+        cost_profile = payload["cost_profile"]
+        assert cost_profile["runtime_cost_usd"] == 0
+        assert cost_profile["uses_external_apis"] is False
+        assert cost_profile["requires_api_keys"] is False
+
+    assert "health_index_pct" in cycle_columns
 
 
 def test_public_repo_community_files_exist_and_match_repo_scope() -> None:

@@ -4,6 +4,7 @@
 
 ## Verification
 - [ ] `make check`
+- [ ] `batteryops-audit`
 - [ ] `make screenshots` if UI copy, layout, or screenshots changed
 - [ ] No raw data, secrets, or local-only files were added
 

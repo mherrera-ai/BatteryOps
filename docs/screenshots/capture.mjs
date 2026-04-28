@@ -17,30 +17,29 @@ const settleDelayMs = Number(process.env.BATTERYOPS_SCREENSHOT_SETTLE_MS ?? 800)
 const appReadyTimeoutMs = Number(process.env.BATTERYOPS_APP_READY_TIMEOUT_MS ?? 90_000);
 const appWaitPollMs = Number(process.env.BATTERYOPS_APP_WAIT_POLL_MS ?? 1_000);
 const mainContainerSelector = '[data-testid="stMainBlockContainer"]';
+const screenshotMinHeightPx = Number(process.env.BATTERYOPS_SCREENSHOT_MIN_HEIGHT_PX ?? 780);
+const screenshotMaxHeightPx = Number(process.env.BATTERYOPS_SCREENSHOT_MAX_HEIGHT_PX ?? 1_350);
+const screenshotContentPaddingPx = Number(
+  process.env.BATTERYOPS_SCREENSHOT_CONTENT_PADDING_PX ?? 32,
+);
 
 const shots = [
   {
-    name: 'overview.png',
-    tab: 'Overview',
-    ready: 'System Snapshot',
+    name: 'fleet-cockpit.png',
+    tab: 'Fleet Cockpit',
+    ready: 'Fleet Cockpit',
     focusAsset: 'battery36',
   },
   {
-    name: 'live-telemetry-replay.png',
-    tab: 'Live Telemetry Replay',
+    name: 'asset-replay.png',
+    tab: 'Asset Replay',
     ready: 'Replay cycle cursor',
     focusAsset: 'battery36',
     afterTab: 'jump-latest',
   },
   {
-    name: 'anomaly-timeline.png',
-    tab: 'Anomaly Timeline',
-    ready: 'Flagged cycle queue',
-    focusAsset: 'battery36',
-  },
-  {
-    name: 'incident-report.png',
-    tab: 'Incident Report',
+    name: 'incident-evidence.png',
+    tab: 'Incident Evidence',
     ready: 'Evidence',
     focusAsset: 'battery50',
   },
@@ -51,9 +50,15 @@ const shots = [
     focusAsset: 'battery50',
   },
   {
-    name: 'evaluation-dashboard.png',
-    tab: 'Evaluation Dashboard',
+    name: 'model-evaluation.png',
+    tab: 'Model Evaluation',
     ready: 'Proxy RUL MAE',
+    focusAsset: 'battery50',
+  },
+  {
+    name: 'data-provenance.png',
+    tab: 'Data & Provenance',
+    ready: 'Data quality checks',
     focusAsset: 'battery50',
   },
 ];
@@ -149,35 +154,19 @@ async function stopAppProcess(child) {
   }
 }
 
-async function resolveFocusAssetSelector(page) {
-  const labeled = page.getByRole('combobox', { name: /Focus asset/i });
-  if ((await labeled.count()) > 0) {
-    return labeled.first();
-  }
-
-  const fallback = page.locator('[role="combobox"]');
-  if ((await fallback.count()) > 0) {
-    return fallback.first();
-  }
-
-  return null;
-}
-
-async function selectFocusAsset(page, assetId) {
-  const combo = await resolveFocusAssetSelector(page);
-  if (!combo) {
-    return;
-  }
-
-  const current = (await combo.textContent())?.trim();
-  if (current === assetId) {
-    return;
-  }
-
-  await combo.click();
-  const option = page.getByRole('option', { name: assetId, exact: true });
-  await option.first().waitFor({ state: 'visible', timeout: readyTimeoutMs });
-  await option.first().click();
+async function warmBelowTheFoldContent(page) {
+  await page.evaluate(async () => {
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const maxScroll = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight,
+    );
+    for (let y = 0; y <= maxScroll; y += 650) {
+      window.scrollTo(0, y);
+      await delay(120);
+    }
+    window.scrollTo(0, 0);
+  });
   await page.waitForLoadState('networkidle');
   await sleep(settleDelayMs);
 }
@@ -199,13 +188,118 @@ async function resolveMainContainer(page) {
   return page.locator('body');
 }
 
-async function captureShot(page, shot) {
-  await page.goto(appUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  await waitForRenderedApp(page);
-
-  if (shot.focusAsset) {
-    await selectFocusAsset(page, shot.focusAsset);
+async function resolveScreenshotClip(page, container) {
+  const box = await container.boundingBox();
+  if (!box) {
+    throw new Error('Unable to resolve screenshot container bounds');
   }
+
+  const viewport = page.viewportSize() ?? { width: 1800, height: 1500 };
+  const measuredContentHeight = await page.evaluate(
+    ({ mainSelector, padding }) => {
+      const root =
+        document.querySelector(mainSelector) ??
+        document.querySelector('.block-container') ??
+        document.querySelector('[data-testid="stApp"]') ??
+        document.body;
+      const rootRect = root.getBoundingClientRect();
+      const renderTags = new Set([
+        'button',
+        'canvas',
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'img',
+        'input',
+        'li',
+        'p',
+        'select',
+        'svg',
+        'table',
+        'td',
+        'textarea',
+        'th',
+      ]);
+      const renderRoles = new Set(['button', 'img', 'progressbar', 'tab', 'table']);
+      let bottom = rootRect.top;
+
+      for (const element of root.querySelectorAll('*')) {
+        const style = window.getComputedStyle(element);
+        if (
+          style.display === 'none' ||
+          style.visibility === 'hidden' ||
+          Number(style.opacity) === 0
+        ) {
+          continue;
+        }
+
+        const rects = Array.from(element.getClientRects()).filter(
+          (rect) => rect.width > 2 && rect.height > 2,
+        );
+        if (rects.length === 0) {
+          continue;
+        }
+
+        const tag = element.tagName.toLowerCase();
+        const role = element.getAttribute('role') ?? '';
+        const hasDirectText = Array.from(element.childNodes).some(
+          (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+        );
+        const hasVisibleBackground =
+          !['rgba(0, 0, 0, 0)', 'transparent'].includes(style.backgroundColor) &&
+          rects.some((rect) => rect.height < window.innerHeight * 0.9);
+        const hasBorder =
+          Number.parseFloat(style.borderBottomWidth) > 0 ||
+          Number.parseFloat(style.borderLeftWidth) > 0 ||
+          Number.parseFloat(style.borderRightWidth) > 0 ||
+          Number.parseFloat(style.borderTopWidth) > 0;
+        const looksRenderable =
+          hasDirectText ||
+          renderTags.has(tag) ||
+          renderRoles.has(role) ||
+          hasVisibleBackground ||
+          hasBorder;
+
+        if (!looksRenderable) {
+          continue;
+        }
+
+        for (const rect of rects) {
+          bottom = Math.max(bottom, rect.bottom);
+        }
+      }
+
+      if (bottom <= rootRect.top) {
+        return rootRect.height;
+      }
+      return Math.ceil(bottom - rootRect.top + padding);
+    },
+    { mainSelector: mainContainerSelector, padding: screenshotContentPaddingPx },
+  );
+
+  const x = Math.max(0, Math.floor(box.x));
+  const y = Math.max(0, Math.floor(box.y));
+  const width = Math.ceil(Math.min(box.width, viewport.width - x));
+  const height = Math.ceil(
+    Math.min(
+      box.height,
+      Math.max(screenshotMinHeightPx, Number(measuredContentHeight) || screenshotMinHeightPx),
+      screenshotMaxHeightPx,
+      Math.max(400, viewport.height - y),
+    ),
+  );
+
+  return { x, y, width, height };
+}
+
+async function captureShot(page, shot) {
+  const targetUrl = new URL(appUrl);
+  if (shot.focusAsset) {
+    targetUrl.searchParams.set('focus_asset', shot.focusAsset);
+  }
+  await page.goto(targetUrl.toString(), { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  await waitForRenderedApp(page);
 
   await page.getByRole('tab', { name: shot.tab, exact: true }).click();
   await page.getByRole('tab', { name: shot.tab, exact: true }).waitFor({
@@ -227,19 +321,25 @@ async function captureShot(page, shot) {
   }
 
   if (shot.afterTab === 'jump-latest') {
-    await page.getByRole('button', { name: 'Jump to latest' }).click();
-    await sleep(settleDelayMs);
-    await page.waitForLoadState('networkidle');
+    const jumpLatest = page.getByRole('button', { name: 'Jump to latest' });
+    if (await jumpLatest.isEnabled()) {
+      await jumpLatest.click();
+      await sleep(settleDelayMs);
+      await page.waitForLoadState('networkidle');
+    }
   }
 
+  await warmBelowTheFoldContent(page);
   await sleep(settleDelayMs);
   const container = await resolveMainContainer(page);
   await container.waitFor({ state: 'visible', timeout: readyTimeoutMs });
 
   const target = path.join(outputDir, shot.name);
   console.log(`capturing ${shot.name}`);
-  await container.screenshot({
+  const clip = await resolveScreenshotClip(page, container);
+  await page.screenshot({
     path: target,
+    clip,
     animations: 'disabled',
     caret: 'hide',
   });
@@ -258,7 +358,7 @@ async function main() {
     const browser = await chromium.launch({ headless: true });
     try {
       const context = await browser.newContext({
-        viewport: { width: 1800, height: 1800 },
+        viewport: { width: 1800, height: 1500 },
         deviceScaleFactor: 1.5,
         locale: 'en-US',
         timezoneId: 'America/Los_Angeles',

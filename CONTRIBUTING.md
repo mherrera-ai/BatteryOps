@@ -36,6 +36,7 @@ make screenshots
 Useful local commands:
 
 ```bash
+batteryops-audit
 batteryops-demo
 python3 -m batteryops.data.preprocess
 python3 -m batteryops.models.train

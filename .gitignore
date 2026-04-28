@@ -19,7 +19,8 @@ __pycache__/
 .env
 .env.*
 !.env.example
-.streamlit/
+.streamlit/*
+!.streamlit/config.toml
 .codex/
 .cache/
 .idea/
@@ -32,6 +33,7 @@ scratch/
 AGENTS.md
 .venv/
 .pkgtest-wheel/
+.deploy-check/
 .release-*/
 node_modules/
 npm-debug.log*

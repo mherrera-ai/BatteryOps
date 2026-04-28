@@ -12,37 +12,42 @@ def test_streamlit_dashboard_renders_tabs_and_controls() -> None:
 
     assert not list(app.exception)
     assert [tab.label for tab in app.tabs] == [
-        "Overview",
-        "Live Telemetry Replay",
-        "Anomaly Timeline",
-        "Incident Report",
+        "Fleet Cockpit",
+        "Asset Replay",
+        "Incident Evidence",
         "Similar Cases",
-        "Evaluation Dashboard",
+        "Model Evaluation",
+        "Data & Provenance",
     ]
     assert "Focus asset" in [selectbox.label for selectbox in app.selectbox]
-    assert "Replay speed" in [radio.label for radio in app.radio]
+    assert "Step size" in [radio.label for radio in app.radio]
     assert {"Replay cycle cursor", "Alert threshold"}.issubset(
         {slider.label for slider in app.slider}
     )
     assert {
         "Proxy RUL",
         "Report heuristic",
-        "Capacity-retention proxy",
-        "Heuristic alert state",
+        "Health index",
+        "Selected-asset state",
         "Retrieved cases",
         "Closest distance",
         "Best type overlap",
         "Proxy RUL MAE",
         "Evidence coverage",
+        "Runtime cost",
     }.issubset({metric.label for metric in app.metric})
     assert {
         "**Report summary**",
+        "**Triage handoff**",
+        "**Cockpit decision ledger**",
         "**Retrieved case table**",
         "**Recommended next diagnostic tests**",
+        "**Data quality checks**",
     }.issubset({markdown.value for markdown in app.markdown if isinstance(markdown.value, str)})
-    assert next(
-        metric.value for metric in app.metric if metric.label == "Heuristic alert state"
-    ) in {
+    selected_asset_state = next(
+        metric.value for metric in app.metric if metric.label == "Selected-asset state"
+    )
+    assert selected_asset_state in {
         "Inspect soon",
         "Monitor",
     }
@@ -82,7 +87,8 @@ def test_focus_asset_selector_updates_visible_state() -> None:
 
     assert not list(app.exception)
     assert app.selectbox[0].value == "battery36"
-    assert app.metric[0].value == "battery36"
+    focus_asset = next(metric.value for metric in app.metric if metric.label == "Focus asset")
+    assert focus_asset == "battery36"
     assert any(
         isinstance(markdown.value, str) and "asset `battery36`." in markdown.value
         for markdown in app.markdown

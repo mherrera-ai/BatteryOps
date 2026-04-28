@@ -4,6 +4,7 @@ import argparse
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 import joblib  # type: ignore[import-untyped]
 import numpy as np
@@ -70,7 +71,7 @@ REPORT_COLUMNS = [
     "max_abs_current_a",
     "severity_score",
 ]
-TRAINING_MANIFEST_SCHEMA_VERSION = 2
+TRAINING_MANIFEST_SCHEMA_VERSION = 3
 TRAINING_RANDOM_SEED = 42
 FINAL_ANOMALY_CONTAMINATION = 0.2
 HOLDOUT_ANOMALY_CONTAMINATION = 0.15
@@ -134,6 +135,7 @@ def train_baselines(
     score_min = float(np.min(raw_scores))
     score_max = float(np.max(raw_scores))
     cycle_table["anomaly_score"] = normalize_scores(raw_scores, score_min, score_max)
+    cycle_table["health_index_pct"] = build_health_index(cycle_table)
     threshold = float(cycle_table["anomaly_score"].quantile(FINAL_ALERT_THRESHOLD_QUANTILE))
     cycle_table["predicted_alert"] = cycle_table["anomaly_score"] >= threshold
     cycle_table["status"] = np.where(cycle_table["predicted_alert"], "inspect soon", "monitor")
@@ -187,6 +189,14 @@ def train_baselines(
         "evidence_source_coverage": evidence_source_coverage,
         "report_grounding_coverage": evidence_source_coverage,
     }
+    feature_importance = rank_feature_signals(cycle_table)
+    model_card = build_model_card(metrics, feature_importance)
+    data_quality_report = build_data_quality_report(cycle_table, incident_windows, data_source)
+    evaluation_report = build_evaluation_report(
+        validation_table,
+        metrics,
+        feature_importance,
+    )
 
     artifact_paths = save_artifacts(
         resolved_artifacts,
@@ -206,6 +216,9 @@ def train_baselines(
         retrieval_bundle,
         report,
         metrics,
+        model_card,
+        data_quality_report,
+        evaluation_report,
         allow_demo_fallback=allow_demo_fallback,
     )
     return TrainingResult(
@@ -488,6 +501,246 @@ def normalize_scores(raw_scores: np.ndarray, score_min: float, score_max: float)
     return (raw_scores - score_min) / (score_max - score_min)
 
 
+def build_health_index(cycle_table: pd.DataFrame) -> pd.Series:
+    """Convert source-specific capacity proxies into a bounded reviewer-facing index."""
+    if cycle_table.empty or "capacity_ah" not in cycle_table:
+        return pd.Series(dtype=float, index=cycle_table.index)
+
+    indexed = pd.Series(0.0, index=cycle_table.index, dtype=float)
+    for _, frame in cycle_table.groupby("asset_id", sort=False):
+        ordered = frame.sort_values("cycle_id")
+        capacity = pd.to_numeric(ordered["capacity_ah"], errors="coerce").replace(0.0, np.nan)
+        baseline_window = capacity.dropna().head(min(10, capacity.dropna().size))
+        baseline = float(baseline_window.median()) if not baseline_window.empty else np.nan
+        if not np.isfinite(baseline) or baseline <= 0.0:
+            health = pd.Series(0.0, index=ordered.index, dtype=float)
+        else:
+            health = (capacity / baseline * 100.0).clip(lower=0.0, upper=100.0).fillna(0.0)
+        indexed.loc[ordered.index] = health.round(2)
+
+    return indexed
+
+
+def rank_feature_signals(cycle_table: pd.DataFrame) -> list[dict[str, object]]:
+    """Rank model inputs with a deterministic correlation-based signal score."""
+    if cycle_table.empty:
+        return []
+
+    target_rul = pd.to_numeric(cycle_table["actual_rul_cycles"], errors="coerce")
+    target_alert = cycle_table["actual_alert"].astype(float)
+    rows: list[dict[str, object]] = []
+    for column in MODEL_FEATURE_COLUMNS:
+        values = pd.to_numeric(cycle_table[column], errors="coerce")
+        if values.dropna().nunique() <= 1:
+            score = 0.0
+        else:
+            rul_corr = abs(float(values.corr(target_rul))) if target_rul.notna().any() else 0.0
+            alert_corr = (
+                abs(float(values.corr(target_alert))) if target_alert.notna().any() else 0.0
+            )
+            score = np.nan_to_num((rul_corr * 0.65) + (alert_corr * 0.35), nan=0.0)
+        rows.append(
+            {
+                "feature": column,
+                "importance": round(float(score), 4),
+                "method": "absolute correlation with proxy RUL and alert labels",
+            }
+        )
+
+    rows.sort(key=lambda item: cast(float, item["importance"]), reverse=True)
+    total = sum(cast(float, item["importance"]) for item in rows) or 1.0
+    for item in rows:
+        item["importance"] = round(cast(float, item["importance"]) / total, 4)
+    return rows
+
+
+def build_model_card(
+    metrics: dict[str, float | int | str],
+    feature_importance: list[dict[str, object]],
+) -> dict[str, object]:
+    """Create a compact model card for the public demo bundle."""
+    return {
+        "schema_version": 1,
+        "project": "BatteryOps",
+        "intended_role_signal": "ML engineering portfolio project",
+        "cost_profile": {
+            "runtime_cost_usd": 0,
+            "uses_external_apis": False,
+            "requires_api_keys": False,
+            "requires_paid_services": False,
+        },
+        "models": {
+            "rul_proxy": {
+                "estimator": "HistGradientBoostingRegressor",
+                "target": "degradation-threshold proxy RUL in cycles",
+                "random_state": TRAINING_RANDOM_SEED,
+            },
+            "anomaly": {
+                "estimator": "IsolationForest",
+                "target": "cycle-level inspect-soon anomaly score",
+                "random_state": TRAINING_RANDOM_SEED,
+                "n_estimators": 200,
+                "final_fit_contamination": FINAL_ANOMALY_CONTAMINATION,
+            },
+            "retrieval": {
+                "estimator": "NearestNeighbors",
+                "target": "similar incident lookup over standardized incident vectors",
+            },
+        },
+        "feature_columns": MODEL_FEATURE_COLUMNS,
+        "feature_importance": feature_importance[:12],
+        "evaluation": metrics,
+        "limitations": [
+            "Metrics are proxy evidence for a local demo bundle, not calibrated safety claims.",
+            "The dashboard uses a bounded health index because NASA source capacity scales differ.",
+            "No external API or paid service is used at training or runtime.",
+        ],
+    }
+
+
+def build_data_quality_report(
+    cycle_table: pd.DataFrame,
+    incident_windows: pd.DataFrame,
+    data_source: str,
+) -> dict[str, object]:
+    """Summarize bundle data sanity checks for public review."""
+    health = pd.to_numeric(cycle_table.get("health_index_pct", pd.Series(dtype=float)))
+    anomaly = pd.to_numeric(cycle_table.get("anomaly_score", pd.Series(dtype=float)))
+    predicted_rul = pd.to_numeric(cycle_table.get("predicted_rul_cycles", pd.Series(dtype=float)))
+
+    checks = [
+        _quality_check(
+            "health_index_bounds",
+            bool((health.between(0.0, 100.0) | health.isna()).all()),
+            "Health index is bounded to 0..100 for public-facing charts.",
+            min_value=float(health.min()) if not health.empty else 0.0,
+            max_value=float(health.max()) if not health.empty else 0.0,
+        ),
+        _quality_check(
+            "anomaly_score_bounds",
+            bool((anomaly.between(0.0, 1.0) | anomaly.isna()).all()),
+            "Anomaly scores are normalized to 0..1.",
+            min_value=float(anomaly.min()) if not anomaly.empty else 0.0,
+            max_value=float(anomaly.max()) if not anomaly.empty else 0.0,
+        ),
+        _quality_check(
+            "nonnegative_rul",
+            bool((predicted_rul.fillna(0.0) >= 0.0).all()),
+            "Predicted proxy RUL is clipped at zero cycles.",
+            min_value=float(predicted_rul.min()) if not predicted_rul.empty else 0.0,
+            max_value=float(predicted_rul.max()) if not predicted_rul.empty else 0.0,
+        ),
+        _quality_check(
+            "incident_rows_present",
+            not incident_windows.empty,
+            "Incident windows are available for retrieval and report evidence.",
+            min_value=float(len(incident_windows)),
+            max_value=float(len(incident_windows)),
+        ),
+    ]
+    return {
+        "schema_version": 1,
+        "data_source": data_source,
+        "cost_profile": {
+            "runtime_cost_usd": 0,
+            "uses_external_apis": False,
+            "requires_api_keys": False,
+        },
+        "summary": {
+            "asset_count": int(cycle_table["asset_id"].nunique()) if not cycle_table.empty else 0,
+            "cycle_count": int(len(cycle_table)),
+            "incident_case_count": int(len(incident_windows)),
+            "health_index_min": float(health.min()) if not health.empty else 0.0,
+            "health_index_max": float(health.max()) if not health.empty else 0.0,
+        },
+        "checks": checks,
+        "notes": [
+            "Raw NASA capacity-like values are preserved in artifacts for provenance.",
+            "Reviewer-facing charts use health_index_pct to avoid overclaiming physical units.",
+        ],
+    }
+
+
+def _quality_check(
+    name: str,
+    passed: bool,
+    detail: str,
+    *,
+    min_value: float,
+    max_value: float,
+) -> dict[str, object]:
+    return {
+        "name": name,
+        "status": "pass" if passed else "warn",
+        "detail": detail,
+        "min": round(float(min_value), 4),
+        "max": round(float(max_value), 4),
+    }
+
+
+def build_evaluation_report(
+    validation_table: pd.DataFrame,
+    metrics: dict[str, float | int | str],
+    feature_importance: list[dict[str, object]],
+) -> dict[str, object]:
+    """Create dashboard-ready evaluation details beyond the headline metrics."""
+    threshold_rows: list[dict[str, object]] = []
+    for threshold in np.linspace(0.0, 1.0, 21):
+        predicted = validation_table["anomaly_score"] >= threshold
+        actual = validation_table["actual_alert"].astype(bool)
+        threshold_rows.append(
+            {
+                "threshold": round(float(threshold), 2),
+                "precision": round(alert_precision(actual, predicted), 4),
+                "recall": round(alert_recall(actual, predicted), 4),
+                "false_positive_rate": round(false_positive_rate(actual, predicted), 4),
+                "flagged_cycles": int(predicted.sum()),
+            }
+        )
+
+    asset_rows: list[dict[str, object]] = []
+    for asset_id, frame in validation_table.groupby("asset_id", sort=True):
+        asset_rows.append(
+            {
+                "asset_id": str(asset_id),
+                "cycle_count": int(len(frame)),
+                "actual_incidents": int(frame["actual_alert"].sum()),
+                "predicted_alerts": int(frame["predicted_alert"].sum()),
+                "rul_mae": round(
+                    rul_mae(frame["actual_rul_cycles"], frame["predicted_rul_cycles"]),
+                    4,
+                ),
+            }
+        )
+    asset_rows.sort(key=lambda item: cast(float, item["rul_mae"]), reverse=True)
+
+    actual = validation_table["actual_alert"].astype(bool)
+    predicted = validation_table["predicted_alert"].astype(bool)
+    return {
+        "schema_version": 1,
+        "evaluation_mode": str(metrics["evaluation_mode"]),
+        "cost_profile": {
+            "runtime_cost_usd": 0,
+            "uses_external_apis": False,
+            "requires_api_keys": False,
+        },
+        "headline_metrics": metrics,
+        "confusion": {
+            "true_positive": int((predicted & actual).sum()),
+            "false_positive": int((predicted & ~actual).sum()),
+            "true_negative": int((~predicted & ~actual).sum()),
+            "false_negative": int((~predicted & actual).sum()),
+        },
+        "threshold_curve": threshold_rows,
+        "per_asset_error": asset_rows,
+        "feature_importance": feature_importance[:12],
+        "notes": [
+            "Evaluation is leave-one-asset-out when at least two assets are available.",
+            "Threshold tradeoff is computed from saved validation scores, not a live service.",
+        ],
+    }
+
+
 def _resolve_failure_cycle_proxy(asset_cycles: pd.DataFrame) -> int:
     ordered = asset_cycles.sort_values("cycle_id").reset_index(drop=True)
     if ordered.empty:
@@ -649,6 +902,9 @@ def save_artifacts(
     retrieval_bundle: IncidentRetrievalBundle,
     report: dict[str, object],
     metrics: dict[str, float | int | str],
+    model_card: dict[str, object],
+    data_quality_report: dict[str, object],
+    evaluation_report: dict[str, object],
     *,
     allow_demo_fallback: bool,
 ) -> dict[str, Path]:
@@ -661,6 +917,9 @@ def save_artifacts(
         "demo_incident_cases": artifact_dir / "demo_incident_cases.parquet",
         "demo_metrics": artifact_dir / "demo_metrics.json",
         "demo_report": artifact_dir / "demo_report.json",
+        "model_card": artifact_dir / "model_card.json",
+        "data_quality_report": artifact_dir / "data_quality_report.json",
+        "evaluation_report": artifact_dir / "evaluation_report.json",
         "training_manifest": artifact_dir / "training_manifest.json",
     }
 
@@ -680,11 +939,15 @@ def save_artifacts(
         "predicted_rul_cycles",
         "actual_rul_cycles",
         "actual_alert",
+        "health_index_pct",
     ]
     cycle_table[cycle_columns].to_parquet(paths["demo_cycle_predictions"], index=False)
     incident_windows.to_parquet(paths["demo_incident_cases"], index=False)
     paths["demo_metrics"].write_text(json.dumps(metrics, indent=2))
     paths["demo_report"].write_text(json.dumps(report, indent=2))
+    paths["model_card"].write_text(json.dumps(model_card, indent=2))
+    paths["data_quality_report"].write_text(json.dumps(data_quality_report, indent=2))
+    paths["evaluation_report"].write_text(json.dumps(evaluation_report, indent=2))
 
     artifact_records: dict[str, str | dict[str, object]] = {
         "training_manifest": str(paths["training_manifest"]),
@@ -715,6 +978,7 @@ def save_artifacts(
 
     manifest = {
         "schema_version": TRAINING_MANIFEST_SCHEMA_VERSION,
+        "generated_by": f"batteryops {__version__}",
         "artifacts": artifact_records,
         "metrics": metrics,
         "report_id": report["report_id"],

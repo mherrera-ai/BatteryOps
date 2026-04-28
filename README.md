@@ -3,58 +3,70 @@
 [![CI](https://github.com/mherrera-ai/BatteryOps/actions/workflows/ci.yml/badge.svg)](https://github.com/mherrera-ai/BatteryOps/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB.svg)](pyproject.toml)
+[![Cost: $0](https://img.shields.io/badge/runtime_cost-%240-1f8a70.svg)](#zero-cost-contract)
 
-BatteryOps is a local-first Streamlit demo for telemetry triage and predictive maintenance on public NASA battery data. It turns a public dataset into a reviewable analyst workflow: preprocess local parquet, train simple baselines, and serve a validated demo bundle without backend infrastructure, auth, or paid services.
+BatteryOps is a zero-cost ML engineering portfolio project for battery telemetry triage. It turns public NASA battery data into a validated local artifact bundle, then serves a Streamlit cockpit with fleet risk, asset replay, incident evidence, nearest-neighbor case retrieval, model evaluation, and provenance.
 
-The fast path is the checked-in demo bundle in `artifacts/demo/`. If that bundle cannot be validated, the app still launches with deterministic synthetic telemetry so the repository remains runnable, but the reviewer-facing evidence comes from the saved bundle.
+The public demo uses only Python, Streamlit, scikit-learn, pandas, Plotly, and checked-in artifacts. There are no paid APIs, API keys, hosted databases, auth providers, or metered services.
 
 ![BatteryOps hero](docs/assets/batteryops-hero.svg)
 
 ## 5-Minute Review
 
-If you only skim the repo, start here:
-
-1. `README.md` for the public story and launch path.
-1. `docs/architecture.md` for the data flow, bundle validation rules, and runtime boundaries.
-1. `docs/screenshots/` for the six-tab Streamlit walkthrough captured from the checked-in demo bundle.
-1. `artifacts/demo/training_manifest.json` for artifact provenance, fingerprinting, and bundle metadata.
-1. `make check` and `batteryops-demo` for the main verification path.
+1. Launch the app with `batteryops-demo` or deploy the free Streamlit Community Cloud entrypoint at `app/streamlit_app.py`.
+1. Review the first-screen proof strip and Fleet Cockpit `Triage handoff` table for the fastest product walkthrough.
+1. Open `docs/recruiter-review.md` for the fastest walkthrough of what the project proves.
+1. Open `docs/model-card.md` and `docs/data-card.md` for the ML framing and data-quality story.
+1. Inspect `artifacts/demo/training_manifest.json` for artifact hashes, bundle fingerprinting, and schema `3`.
+1. Run `batteryops-audit` for a local public-readiness audit of artifacts, docs, screenshots, and the zero-cost contract.
+1. Run `make check` for linting, typing, tests, the public audit, and artifact validation.
+1. Run `make deploy-check` to verify the Streamlit Cloud dependency path with no secrets or paid services.
 
 ## Start Here
 
-- [Quick start](#quick-start)
-- [First launch expectations](#first-launch-expectations)
-- [Demo flow](#demo-flow)
+- [Demo](#demo)
+- [Why It Stands Out](#why-it-stands-out)
+- [Quick Start](#quick-start)
+- [Portfolio Review Guide](#portfolio-review-guide)
+- [Dashboard Flow](#dashboard-flow)
+- [Public Readiness Audit](#public-readiness-audit)
 - [Screenshots](#screenshots)
+- [Current Demo Bundle Metrics](#current-demo-bundle-metrics)
 - [Architecture](#architecture)
-- [Current demo bundle metrics](#current-demo-bundle-metrics)
+- [Zero-Cost Contract](#zero-cost-contract)
 - [Verification](#verification)
-- [Troubleshooting](#troubleshooting)
-- [Data prep](#data-prep)
-- [Model training](#model-training)
+- [Data Prep](#data-prep)
 - [Limitations](#limitations)
-- [Contributing](CONTRIBUTING.md)
-- [Security](SECURITY.md)
+- [Publishing Notes](#publishing-notes)
 
-## What It Is
+## Demo
 
-An intentionally scoped portfolio project: a credible, reviewable workflow from raw public data to a local analyst dashboard.
+The project is complete as a public repo and can be reviewed from the screenshots, checked-in artifacts, docs, tests, and local Streamlit app.
 
-The public repo is optimized for clone-and-run review, with the checked-in demo bundle, screenshots, and docs forming the visible evidence trail.
+Run the cockpit locally:
 
-It is not production EV safety software, and it does not claim calibrated safety performance.
+```bash
+batteryops-demo
+```
 
-## At a Glance
+Optional free Streamlit Community Cloud deployment settings:
 
-| Item | Status |
-| --- | --- |
-| Stack | `Streamlit`, `pandas`, `numpy`, `scipy`, `scikit-learn`, `plotly` |
-| Packaging | Code lives under `src/batteryops`; `app/streamlit_app.py` is the thin local wrapper |
-| Repo payload | Source, tests, docs, screenshots, artifact manifest, and the saved demo bundle |
-| Local data | `data/raw/` and `data/processed/` stay out of git |
-| Demo path | Prefers a validated bundle in `artifacts/demo/`; otherwise falls back to deterministic synthetic telemetry |
-| Bundle provenance | `artifacts/demo/training_manifest.json` records artifact paths, SHA-256 hashes, bundle fingerprint, and runtime/training provenance for the current `26`-asset, `848`-cycle, `537`-incident bundle |
-| Verification | `make check` is the main repo-level signal; `make screenshots` refreshes the gallery |
+- Repository: `mherrera-ai/BatteryOps`
+- Branch: `main`
+- Main file path: `app/streamlit_app.py`
+- Dependencies: `requirements.txt`
+
+The local path remains the source of truth if a free hosting policy ever changes.
+
+## Why It Stands Out
+
+- **ML engineering, not a mock UI:** preprocessing, feature extraction, model training, retrieval, reporting, evaluation, and dashboard code live under `src/batteryops`.
+- **Fleet-level product thinking:** the cockpit starts with a risk map, priority queue, decision ledger, risk concentration, replay, incident evidence, and provenance instead of isolated charts.
+- **Reviewable artifacts:** the checked-in bundle has model files, parquet outputs, metrics, a report, model card, data-quality report, evaluation report, and SHA-256 fingerprinting.
+- **Auditable public-readiness:** `batteryops-audit` validates the checked-in bundle, docs, screenshots, free deploy path, community files, and dependency cost guard.
+- **Responsible claims:** RUL and alerts are clearly framed as proxy demo metrics, not safety certification.
+- **Zero-cost runtime:** the app runs without API keys, hosted databases, paid inference, or cloud services.
+- **Recruiter-friendly UX:** the dashboard opens directly to the fleet cockpit instead of a landing page.
 
 ## Quick Start
 
@@ -69,93 +81,56 @@ make check
 batteryops-demo
 ```
 
-If you already have the virtual environment active, launch directly with:
-
-```bash
-batteryops-demo
-```
-
 `batteryops-demo` is the saved-bundle launch path documented here; `batteryops` is the shorter alias.
 
-Run `batteryops-demo` from the repository root, or from another workspace that contains local
-`artifacts/demo/`. Local `data/processed/` parquet is optional and only used for preprocessing
-or retraining workflows that regenerate the demo bundle.
+Run `batteryops-demo` from the repository root, or from another workspace that contains local `artifacts/demo/`. Local `data/processed/` parquet is optional and only used for preprocessing or retraining workflows that regenerate the demo bundle.
 
-## First Launch Expectations
+## Portfolio Review Guide
 
-On startup, the app resolves the first healthy local bundle it can validate. In practice, that means:
+For a fast reviewer path, start with [docs/recruiter-review.md](docs/recruiter-review.md). It maps the repo to the engineering signals this project is meant to demonstrate: local ML artifacts, evaluation discipline, product-quality dashboarding, reproducible checks, and a hard zero-cost boundary.
 
-1. Prefer the checked-in `artifacts/demo/` bundle when its manifest, metrics, report, timeline, and incident artifacts all agree.
-1. Fall back to deterministic synthetic telemetry when the validated bundle is missing or incomplete.
-1. Surface the active runtime source in the sidebar so reviewers can tell which path they are seeing.
-1. Do not read `data/processed/` directly at app startup; local parquet only matters when you are regenerating the bundle.
+## Dashboard Flow
 
-Charts come from persisted cycle summaries. The capacity and RUL traces are proxy metrics for transparent triage storytelling, not calibrated physical-grade estimates.
+1. `Fleet Cockpit`: fleet risk map, ranked priority queue, cockpit decision ledger, risk concentration, selected-asset risk drivers, health trend, RUL proxy, and current triage note
+1. `Asset Replay`: cycle cursor, anomaly score, proxy RUL, and replay chart
+1. `Incident Evidence`: threshold context, source evidence, diagnostics, and downloadable incident brief
+1. `Similar Cases`: nearest-neighbor incident retrieval over saved historical cases
+1. `Model Evaluation`: confusion matrix, RUL scatter, threshold tradeoff, feature signals, per-asset error, and alert coverage
+1. `Data & Provenance`: data-quality checks, artifact inventory, model-card summary, limitations, and zero-cost contract
 
-## What Recruiters See
+## Public Readiness Audit
 
-The public payload is intentionally small and honest. A recruiter should be able to verify three things quickly:
+Run the local audit before publishing:
 
-1. The project is real code, not a mock UI: the Streamlit app runs locally and the tests exercise the documented entry points.
-1. The results are reproducible: the checked-in demo bundle is validated from hashes and manifest metadata before the app uses it.
-1. The scope is responsible: the repo stays local-first, avoids hosted dependencies, and states its limits clearly.
+```bash
+batteryops-audit
+```
 
-## Demo Flow
+The audit checks the validated artifact bundle, zero-cost flags, Streamlit Community Cloud path, reviewer docs, screenshot gallery, secret-like token patterns, community files, and dependency manifests. It also supports JSON for CI or review automation:
 
-The app opens on six tabs, in the same order used by the screenshot flow:
-
-1. `Overview`: asset snapshot, health trend, and triage note
-1. `Live Telemetry Replay`: cycle-by-cycle replay with `1x`, `4x`, and `10x` speed
-1. `Anomaly Timeline`: threshold control and triage queue over replay windows
-1. `Incident Report`: deterministic report assembled from saved evidence
-1. `Similar Cases`: nearest-neighbor retrieval for comparable incidents
-1. `Evaluation Dashboard`: saved proxy metrics and evaluation framing
+```bash
+batteryops-audit --json
+```
 
 ## Screenshots
 
-The captures below are refreshed from the checked-in demo bundle and should match the current six-tab app copy and layout.
+![Fleet cockpit](docs/screenshots/fleet-cockpit.png)
+![Asset replay](docs/screenshots/asset-replay.png)
+![Incident evidence](docs/screenshots/incident-evidence.png)
+![Similar cases](docs/screenshots/similar-cases.png)
+![Model evaluation](docs/screenshots/model-evaluation.png)
+![Data provenance](docs/screenshots/data-provenance.png)
 
-![BatteryOps overview screenshot](docs/screenshots/overview.png)
-![BatteryOps replay screenshot](docs/screenshots/live-telemetry-replay.png)
-![BatteryOps anomaly timeline screenshot](docs/screenshots/anomaly-timeline.png)
-![BatteryOps incident report screenshot](docs/screenshots/incident-report.png)
-![BatteryOps similar cases screenshot](docs/screenshots/similar-cases.png)
-![BatteryOps evaluation dashboard screenshot](docs/screenshots/evaluation-dashboard.png)
+Refresh the gallery with:
 
-Open full-size captures directly if preview thumbnails are hard to read:
-
-- [Overview](docs/screenshots/overview.png)
-- [Live Telemetry Replay](docs/screenshots/live-telemetry-replay.png)
-- [Anomaly Timeline](docs/screenshots/anomaly-timeline.png)
-- [Incident Report](docs/screenshots/incident-report.png)
-- [Similar Cases](docs/screenshots/similar-cases.png)
-- [Evaluation Dashboard](docs/screenshots/evaluation-dashboard.png)
-
-Refresh the gallery with `make screenshots`. That target auto-starts the local headless app, captures all six tabs into `docs/screenshots/`, and shuts the app down when capture completes.
-
-On a fresh clone, run `npm ci` once before the first screenshot refresh so the pinned Playwright tooling from `package-lock.json` is available locally.
-
-If the bundle, runtime source label, or tab copy changes, refresh the gallery and the README wording together so the public story stays aligned.
-
-## Architecture
-
-![BatteryOps workflow](docs/assets/batteryops-pipeline.svg)
-
-Current flow:
-
-1. Manually drop a supported NASA archive into `data/raw/`.
-1. Run preprocessing into local parquet at `data/processed/`.
-1. Train feature and model baselines into `artifacts/demo/`.
-1. Validate the saved demo bundle before the app consumes it.
-1. Load deterministic incident retrieval and report artifacts at startup.
-1. Render the dashboard from the persisted bundle when validation succeeds.
-1. Fall back to synthetic telemetry if the validated bundle is unavailable.
-
-For module-level detail and bundle validation rules, see [docs/architecture.md](docs/architecture.md).
+```bash
+npm ci
+make screenshots
+```
 
 ## Current Demo Bundle Metrics
 
-Metrics below are from this workspace and are used as evidence only.
+Metrics below are from the checked-in bundle and are used as portfolio evidence only.
 
 | Metric | Value |
 | --- | ---: |
@@ -170,41 +145,50 @@ Metrics below are from this workspace and are used as evidence only.
 | False positive rate | `16.4%` |
 | RUL proxy MAE | `5.483` cycles |
 | Evidence source coverage | `100%` |
+| Health index range | `0.0-100.0%` |
 
-These are proxy metrics for the current bundle, not deployment-ready performance claims. When bundle metrics change, regenerate the demo artifact bundle, refresh screenshots, and update this table together.
+The current `26`-asset, `848`-cycle, `537`-incident bundle is validated before the app uses it. When bundle metrics change, regenerate artifacts, refresh screenshots, and update this table together.
+
+## Architecture
+
+![BatteryOps workflow](docs/assets/batteryops-pipeline.svg)
+
+Current flow:
+
+1. Manually place a supported public NASA archive into `data/raw/`.
+1. Run preprocessing into local parquet under `data/processed/`.
+1. Train local scikit-learn baselines and retrieval artifacts into `artifacts/demo/`.
+1. Save metrics, model card, data-quality report, evaluation report, incident report, and manifest provenance.
+1. Validate the saved bundle before the app consumes it.
+1. Render the dashboard from the persisted bundle, or use deterministic fallback telemetry when no valid bundle exists.
+
+Do not read `data/processed/` directly at app startup. The checked-in public demo does not need those local caches to launch; they are only inputs for rebuilding the saved bundle and are not a runtime dependency for the public demo path.
+
+For module-level detail, see [docs/architecture.md](docs/architecture.md).
+
+## Zero-Cost Contract
+
+BatteryOps is designed to cost nothing:
+
+- No external API calls
+- No API keys or secrets
+- No hosted database
+- No paid model inference
+- No auth provider
+- No metered cloud service
+- Free local run path through `batteryops-demo`
+- Free public demo path through Streamlit Community Cloud
+
+The repo includes tests that check the public artifact contract and deployment dependency path do not require paid services.
 
 ## Verification
 
-The main repo-level signal is:
-
 ```bash
 make check
+make deploy-check
 ```
 
-Run `make screenshots` when you change screenshot capture, the validated bundle, or any wording that affects the gallery story.
-
-For a quick local provenance check on the checked-in bundle:
-
-```bash
-python3 - <<'PY'
-from batteryops.reports.demo import inspect_demo_bundle
-
-status = inspect_demo_bundle()
-print(status.healthy)
-print(status.bundle_fingerprint)
-for artifact in status.artifact_inventory:
-    print(artifact["name"], artifact["sha256"])
-PY
-```
-
-When bundle provenance, screenshot copy, or launch behavior changes, update `README.md`, `docs/architecture.md`, and `docs/screenshots/README.md` in the same change to keep the docs from drifting apart.
-
-## Troubleshooting
-
-- If `batteryops-demo` opens but the sidebar says `synthetic demo fallback`, the validated bundle was not found or did not pass validation. Check `artifacts/demo/training_manifest.json`, `demo_metrics.json`, `demo_report.json`, `demo_cycle_predictions.parquet`, `demo_incident_cases.parquet`, and the model files for completeness and consistency. If you launched from another directory, rerun from the repo root so the command can pick up the local bundle.
-- If you expected the checked-in bundle but see fallback telemetry, regenerate the demo bundle from processed parquet with `python3 -m batteryops.models.train`, then rerun `make screenshots` if the gallery story changed.
-- If the console command is missing after a fresh checkout, rerun the editable install with `python3 -m pip install -e ".[dev]"` inside the project virtual environment.
-- If screenshots no longer match the app, recapture them after the bundle or tab copy change rather than treating stale PNGs as current evidence.
+`make check` runs linting, type checking, tests, the public-readiness audit, and artifact validation. `make deploy-check` creates a temporary install from `requirements.txt` and validates the checked-in bundle plus zero-cost artifact flags.
 
 ## Data Prep
 
@@ -220,43 +204,20 @@ Official sources:
 
 ```bash
 python3 -m batteryops.data.preprocess
-```
-
-The downloaded zip and local parquet are cache artifacts only and are intentionally out of the public payload.
-
-The checked-in public demo does not need those local caches to launch; they are only inputs for rebuilding the saved bundle.
-
-## Model Training
-
-```bash
 python3 -m batteryops.models.train
 ```
 
-If parsed parquet exists, training consumes it; otherwise it uses deterministic synthetic inputs to regenerate a complete bundle so the demo remains runnable.
-
-`training_manifest.json` records the emitted artifact inventory, bundle fingerprint, runtime/package versions, and the input/training recipe used to build the bundle. That makes it easier to verify a checked-in bundle quickly without retraining.
-
-The training step writes:
-
-- `artifacts/demo/rul_model.joblib`
-- `artifacts/demo/anomaly_model.joblib`
-- `artifacts/demo/incident_retrieval.joblib`
-- `artifacts/demo/demo_cycle_predictions.parquet`
-- `artifacts/demo/demo_incident_cases.parquet`
-- `artifacts/demo/demo_metrics.json`
-- `artifacts/demo/demo_report.json`
-- `artifacts/demo/training_manifest.json`
+Raw ZIPs and processed parquet stay local-only. The public repo ships the compact validated demo bundle instead.
 
 ## Limitations
 
-- This repo is a demo with reproducibility and interview-ready clarity as its target, not a production benchmark.
-- The public payload ships review artifacts, not the full raw/processed dataset cache.
-- Evaluation values are local evidence for this bundle, not deployment-ready safety or regulatory claims.
-- The report confidence score is deterministic and narrative; it is not a calibrated probability.
-- Capacity and RUL traces are proxy metrics for triage storytelling, not physical-grade estimates.
+- This is a portfolio-grade ML engineering demo, not production EV safety software.
+- Capacity-like source values are normalized into `health_index_pct` for public charts because NASA source scales differ.
+- RUL and alert metrics are proxy evidence for this artifact bundle, not calibrated deployment claims.
+- The report confidence score is deterministic and narrative; it is not a probability.
 
 ## Publishing Notes
 
-This repository is meant to be public. The files checked into `artifacts/demo/` are the intentionally saved reviewer bundle, while raw archives and regenerated parquet stay local-only. If you refresh the bundle or screenshots, update the README and docs together so the public story stays aligned with the app.
+This repository is meant to be public. Keep source, tests, docs, screenshots, and the validated demo bundle checked in. Keep raw archives, processed parquet, virtual environments, `node_modules/`, logs, scratch files, and generated build outputs out of git.
 
-For public repo housekeeping, see [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+For repo housekeeping, see [Contributing](CONTRIBUTING.md) and [Security](SECURITY.md).

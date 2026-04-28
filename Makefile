@@ -1,4 +1,4 @@
-.PHONY: install lint format typecheck test check demo demo-headless screenshots
+.PHONY: install lint format typecheck test audit check deploy-check demo demo-headless screenshots
 
 ROOT_DIR := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 RUN_IN_ROOT := cd "$(ROOT_DIR)" &&
@@ -29,7 +29,18 @@ typecheck:
 test:
 	$(RUN_IN_ROOT) $(PYTHON) -m pytest
 
-check: lint typecheck test
+audit:
+	$(RUN_IN_ROOT) $(PYTHON) -m batteryops.audit
+
+check: lint typecheck test audit
+
+deploy-check:
+	$(RUN_IN_ROOT) rm -rf .deploy-check
+	$(RUN_IN_ROOT) python3 -m venv .deploy-check
+	$(RUN_IN_ROOT) .deploy-check/bin/python -m pip install --upgrade pip
+	$(RUN_IN_ROOT) .deploy-check/bin/python -m pip install -r requirements.txt
+	$(RUN_IN_ROOT) .deploy-check/bin/python -m pip check
+	$(RUN_IN_ROOT) .deploy-check/bin/python -c "from batteryops.dashboard import load_dashboard_data; from batteryops.reports.demo import inspect_demo_bundle; status = inspect_demo_bundle(); assert status.healthy, status.reason; data = load_dashboard_data(); assert data.model_card.get('cost_profile', {}).get('uses_external_apis') is False; assert data.data_quality_report.get('cost_profile', {}).get('requires_api_keys') is False; assert data.evaluation_report.get('cost_profile', {}).get('runtime_cost_usd') == 0"
 
 demo:
 	$(RUN_IN_ROOT) $(DEMO_CMD)

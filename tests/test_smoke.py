@@ -32,6 +32,7 @@ def _write_demo_bundle(bundle_dir: Path) -> None:
                 "anomaly_score": 0.18,
                 "status": "monitor",
                 "predicted_rul_cycles": 14.0,
+                "health_index_pct": 100.0,
             },
             {
                 "asset_id": "battery00",
@@ -41,6 +42,7 @@ def _write_demo_bundle(bundle_dir: Path) -> None:
                 "anomaly_score": 0.32,
                 "status": "monitor",
                 "predicted_rul_cycles": 12.0,
+                "health_index_pct": 98.0,
             },
             {
                 "asset_id": "battery00",
@@ -50,6 +52,7 @@ def _write_demo_bundle(bundle_dir: Path) -> None:
                 "anomaly_score": 0.91,
                 "status": "inspect soon",
                 "predicted_rul_cycles": 10.0,
+                "health_index_pct": 96.0,
             },
         ]
     )
@@ -111,6 +114,53 @@ def _write_demo_bundle(bundle_dir: Path) -> None:
         "confidence_score": 0.86,
     }
     (bundle_dir / DEMO_ARTIFACT_FILENAMES["demo_report"]).write_text(json.dumps(report))
+    for artifact_name in ("model_card", "data_quality_report", "evaluation_report"):
+        (bundle_dir / DEMO_ARTIFACT_FILENAMES[artifact_name]).write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "cost_profile": {
+                        "runtime_cost_usd": 0,
+                        "uses_external_apis": False,
+                        "requires_api_keys": False,
+                        "requires_paid_services": False,
+                    },
+                    "threshold_curve": [
+                        {
+                            "threshold": 0.5,
+                            "precision": 1.0,
+                            "recall": 1.0,
+                            "false_positive_rate": 0.0,
+                            "flagged_cycles": 1,
+                        }
+                    ],
+                    "per_asset_error": [
+                        {
+                            "asset_id": "battery00",
+                            "cycle_count": 3,
+                            "actual_incidents": 1,
+                            "predicted_alerts": 1,
+                            "rul_mae": 3.2,
+                        }
+                    ],
+                    "feature_importance": [
+                        {"feature": "sample_count", "importance": 1.0, "method": "fixture"}
+                    ],
+                    "summary": {"health_index_min": 96.0, "health_index_max": 100.0},
+                    "checks": [
+                        {
+                            "name": "fixture",
+                            "status": "pass",
+                            "detail": "fixture",
+                            "min": 0.0,
+                            "max": 1.0,
+                        }
+                    ],
+                    "models": {"rul_proxy": {"estimator": "fixture"}},
+                    "limitations": ["fixture"],
+                }
+            )
+        )
 
     manifest = {
         "artifacts": {
@@ -175,6 +225,7 @@ def test_package_and_dashboard_payload_smoke_uses_hermetic_demo_bundle(
         "predicted_rul_lower_cycles",
         "predicted_rul_upper_cycles",
         "status",
+        "health_index_pct",
     }.issubset(timeline.columns)
     assert not similar_cases.empty
     assert {"case_label", "distance", "severity_score", "type_overlap"}.issubset(

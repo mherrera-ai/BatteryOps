@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "data_source": "processed",
+  "cost_profile": {
+    "runtime_cost_usd": 0,
+    "uses_external_apis": false,
+    "requires_api_keys": false
+  },
+  "summary": {
+    "asset_count": 26,
+    "cycle_count": 848,
+    "incident_case_count": 537,
+    "health_index_min": 0.0,
+    "health_index_max": 100.0
+  },
+  "checks": [
+    {
+      "name": "health_index_bounds",
+      "status": "pass",
+      "detail": "Health index is bounded to 0..100 for public-facing charts.",
+      "min": 0.0,
+      "max": 100.0
+    },
+    {
+      "name": "anomaly_score_bounds",
+      "status": "pass",
+      "detail": "Anomaly scores are normalized to 0..1.",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "nonnegative_rul",
+      "status": "pass",
+      "detail": "Predicted proxy RUL is clipped at zero cycles.",
+      "min": 0.0,
+      "max": 40.0497
+    },
+    {
+      "name": "incident_rows_present",
+      "status": "pass",
+      "detail": "Incident windows are available for retrieval and report evidence.",
+      "min": 537.0,
+      "max": 537.0
+    }
+  ],
+  "notes": [
+    "Raw NASA capacity-like values are preserved in artifacts for provenance.",
+    "Reviewer-facing charts use health_index_pct to avoid overclaiming physical units."
+  ]
+}

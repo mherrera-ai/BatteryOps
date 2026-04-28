@@ -2,7 +2,7 @@
 
 ## Purpose
 
-BatteryOps is a local-first analytics repository, not a hosted product stack. The public checkout is intentionally minimal: source, tests, docs, screenshots, and a validated demo bundle under `artifacts/demo/`. Raw ZIPs and generated parquet stay local and out of git, and the demo app does not read `data/processed/` directly at startup.
+BatteryOps is a zero-cost ML engineering showcase for local battery telemetry triage. It is intentionally scoped around public NASA data, reproducible local artifacts, and a Streamlit dashboard that recruiters can inspect without secrets, paid APIs, hosted databases, or backend infrastructure.
 
 The saved bundle is a leave-one-asset-out degradation proxy over 26 assets and 848 cycles. Those numbers are demo provenance, not a benchmark, calibration result, or safety claim.
 
@@ -10,47 +10,46 @@ The saved bundle is a leave-one-asset-out degradation proxy over 26 assets and 8
 
 1. Public NASA battery archives are downloaded manually into `data/raw/`.
 1. `batteryops.data.preprocess` converts raw telemetry into normalized parquet outputs in local `data/processed/` storage.
-1. `batteryops.features` derives cycle-level degradation and incident-window features.
-1. `batteryops.models.train` fits baseline RUL and anomaly models and writes the review artifacts into `artifacts/demo/`.
-1. `batteryops.reports.demo` validates the saved demo bundle by checking the manifest, metrics, report, timeline, and incident artifacts for consistency.
-1. `batteryops.reports.demo` returns the first healthy local bundle it finds, preferring the current working directory bundle over the checkout copy.
-1. If no healthy bundle is found, the app uses deterministic synthetic telemetry so the dashboard still launches.
-1. `batteryops.streamlit_app` powers the dashboard from the validated bundle or the synthetic fallback. Local processed parquet is a regeneration input, not a runtime dependency for the public demo path.
-1. `app/streamlit_app.py` provides the thin local wrapper used by the repo and screenshots.
+1. `batteryops.features` derives cycle-level telemetry features and incident windows.
+1. `batteryops.models.train` fits local scikit-learn RUL, anomaly, and retrieval baselines.
+1. Training writes the demo bundle: models, cycle predictions, incident cases, metrics, incident report, model card, data-quality report, evaluation report, and manifest provenance.
+1. `batteryops.reports.demo` validates the manifest, hashes, schema, report, timeline, metrics, and zero-cost metadata before the app consumes the bundle.
+1. If no healthy bundle is found, the app uses deterministic synthetic telemetry so local launch still works.
+1. `batteryops.streamlit_app` renders the Fleet Cockpit, Asset Replay, Incident Evidence, Similar Cases, Model Evaluation, and Data & Provenance tabs.
+1. The Fleet Cockpit summarizes the full bundle through a risk map, ranked priority queue, cockpit decision ledger, risk concentration chart, and selected-asset risk-driver breakdown before drilling into a selected asset timeline.
+1. `batteryops.audit` validates the public-readiness contract across artifacts, zero-cost flags, docs, screenshots, dependency manifests, and repo hygiene.
+1. `app/streamlit_app.py` is the thin Streamlit Cloud/local wrapper.
 
-## Bundle Validation
+## Bundle Contract
 
-- A healthy demo bundle requires the manifest, metrics, report, timeline, incident cases, and model artifacts to all exist and agree.
-- The manifest can record per-artifact SHA-256 hashes, sizes, and a bundle fingerprint so maintainers can verify the checked-in payload quickly.
-- The loader is all-or-nothing. If validation fails, the app does not partially mix bundle artifacts with fresh fallback data.
-- The sidebar surfaces the runtime source label so reviewers can tell whether the current session is using the checked-in demo bundle or the synthetic fallback.
-- `artifacts/demo/training_manifest.json` is the primary provenance record for the saved bundle.
-- If the bundle changes, refresh the README metrics block, the screenshot gallery, and any mirrored docs in the same change.
+- A healthy bundle requires every file in `DEMO_ARTIFACT_FILENAMES`, including `model_card.json`, `data_quality_report.json`, and `evaluation_report.json`.
+- The timeline must include `health_index_pct`, a bounded 0..100 reviewer-facing signal derived from source capacity-like values.
+- The loader is all-or-nothing. If validation fails, the app does not mix partial bundle artifacts with fallback data.
+- `training_manifest.json` records artifact paths, sizes, SHA-256 hashes, bundle fingerprint, metrics, report ID, runtime provenance, and schema version.
+- Cost-profile fields in model/data/evaluation artifacts must not require external APIs, API keys, or paid services.
 
-## Repo Signals
+## Runtime Boundaries
 
-- Raw NASA ZIPs stay out of git.
-- Processed parquet lives under local `data/processed/` storage, stays out of git, and is only used for preprocessing/training workflows.
-- Demo artifacts live under `artifacts/demo/` for fast startup from a local checkout.
-- Startup prefers a validated bundle from `artifacts/demo/`; if no validated bundle is found it uses deterministic synthetic telemetry so the app can still launch.
-- `make screenshots` auto-starts the local app and refreshes the six-tab gallery against the current bundle.
+- The app does not read `data/processed/` directly at startup.
+- Local processed parquet is a regeneration input, not a runtime dependency for the public demo path.
+- Raw NASA ZIPs and regenerated parquet stay out of git.
+- The checked-in bundle under `artifacts/demo/` is the review payload for fast clone-and-run and free Streamlit hosting.
+- `.streamlit/config.toml` only controls presentation and Streamlit toolbar behavior; it does not introduce any service dependency.
 
 ## Module Map
 
-- `src/batteryops/data/`: ingestion, validation, parquet persistence
-- `src/batteryops/features/`: cycle features and incident extraction
-- `src/batteryops/models/`: baseline training workflow
-- `src/batteryops/retrieval/`: similar-case retrieval
-- `src/batteryops/reports/`: report assembly and demo artifact loading
-- `src/batteryops/dashboard.py`: UI-facing data shaping and Plotly figure construction
-- `src/batteryops/eval/`: offline evaluation metrics
-- `app/streamlit_app.py`: Streamlit wrapper used for local launches and screenshots
+- `src/batteryops/data/`: NASA archive parsing, normalization, parquet persistence
+- `src/batteryops/features/`: cycle features, health inputs, incident extraction
+- `src/batteryops/models/`: baseline training, evaluation artifacts, model/data cards
+- `src/batteryops/retrieval/`: nearest-neighbor similar-incident search
+- `src/batteryops/reports/`: incident report assembly and demo bundle validation
+- `src/batteryops/audit.py`: local public-readiness audit for recruiters, CI, and pre-publish checks
+- `src/batteryops/dashboard.py`: data shaping, fleet prioritization, risk-driver breakdowns, artifact inventory formatting, and Plotly figure construction
+- `src/batteryops/streamlit_app.py`: recruiter-facing dashboard
+- `app/streamlit_app.py`: deployment/local wrapper
 
 ## Operating Notes
 
-- Keep raw data out of git.
-- Prefer simple baselines over complex stacks.
-- Save processed outputs as parquet.
-- Keep demo artifacts small so the app opens quickly.
-- Treat the repository as an engineering demo, not production EV safety software.
-- When you change bundle provenance, screenshot content, or fallback wording, update the public docs together so the story stays coherent.
+- Keep the public repo zero-cost: no paid APIs, API keys, hosted vector stores, hosted databases, auth providers, or metered services.
+- Keep claims honest: proxy RUL and alert metrics are engineering evidence, not production safety validation.
+- When the bundle changes, update `README.md`, this architecture page, `docs/model-card.md`, `docs/data-card.md`, and screenshots together.
